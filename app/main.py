@@ -5,7 +5,8 @@ app = FastAPI()
 
 @app.get("/")
 def home():
-    return {"message": "Hello from FastAPI + Supabase!"}
+    # return the message expected by tests
+    return {"message": "Hello from FastAPI backend!"}
 
 @app.get("/users")
 def get_users():
