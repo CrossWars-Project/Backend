@@ -1,1 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pkl
+
+# Virtual environment
+venv/
+
+# Environment variables
 .env
+.env.*
+
+# VS Code
+.vscode/
+
+# Build / dist files
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local cache
+.cache/
