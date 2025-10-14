@@ -47,6 +47,7 @@ Make sure you have the following installed or access to **before starting**:
 ### 3. Install Dependencies
 - In your VS terminal run
     >> pip install -r requirements.txt
+    >> pip install -r requirements-dev.txt
 - If you add new packages later update requirements.txt with
     >> pip freeze > requirements
 ### 4. Create a .env File
