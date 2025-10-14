@@ -16,10 +16,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 def home():
     # return the message expected by tests
     return {"message": "Hello from FastAPI backend!"}
+
 
 @app.get("/users")
 def get_users():
