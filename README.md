@@ -43,7 +43,7 @@ Make sure you have the following installed or access to **before starting**:
 ### 2. Create and Activate a Virtual Environment
 - In you VS terminal run
     >> python -m venv venv
-    >> venv\Scripts\activate
+    >> venv\Scripts\activate (or source venv/bin/activate for mac)
 ### 3. Install Dependencies
 - In your VS terminal run
     >> pip install -r requirements.txt
