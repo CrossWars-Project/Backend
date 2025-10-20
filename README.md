@@ -2,8 +2,7 @@
 Python scripts and crossword generation
 
 # TODOs:
-   
-    - continious intergation setup (aka update testing setup)
+    
 
 # Backend — CrossWars Project
 
