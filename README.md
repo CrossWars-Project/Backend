@@ -33,6 +33,7 @@ Make sure you have the following installed or access to **before starting**:
 
 - [Python 3.10+](https://www.python.org/downloads/)
 - [Git](https://git-scm.com/downloads)
+- [Chocolaty] (https://chocolatey.org/install) (for Windows users)
 - [VS Code](https://code.visualstudio.com/)
 - A [Supabase](https://supabase.com) project (ask the team for the credentials)
 
