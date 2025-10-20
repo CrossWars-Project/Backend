@@ -49,7 +49,7 @@ Make sure you have the following installed or access to **before starting**:
     >> pip install -r requirements.txt
     >> pip install -r requirements-dev.txt
 - If you add new packages later update requirements.txt with
-    >> pip freeze > requirements
+    >> pip freeze > requirements.txt
 ### 4. Create a .env File
 - The project ID and key can be found in the supabase project settings under API Keys
 
