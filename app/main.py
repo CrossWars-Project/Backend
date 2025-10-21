@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Configure CORS
+# Configure CORS, allows requests from frontend dev servers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -23,7 +23,7 @@ def home():
     return {"message": "Hello from FastAPI backend!"}
 
 
-@app.get("/users")
-def get_users():
-    data = supabase.table("users").select("*").execute()
-    return data.data
+#@app.get("/users")
+#def get_users():
+#    data = supabase.table("users").select("*").execute()
+#    return data.data
