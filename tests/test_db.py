@@ -1,0 +1,1 @@
+#test basic db connectivity and operations

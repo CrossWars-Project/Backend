@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.db import supabase
 from fastapi.middleware.cors import CORSMiddleware
-
+#TODO: add routers
 app = FastAPI()
 
 # Configure CORS, allows requests from frontend dev servers
@@ -27,3 +27,7 @@ def home():
 #def get_users():
 #    data = supabase.table("users").select("*").execute()
 #    return data.data
+
+#Register routers here when added
+#this will help keep things modular so each route file can define its own endpoints
+#e.g. app.include_router(stats.router)

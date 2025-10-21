@@ -1,3 +1,4 @@
+#test basic main route
 from app.main import app
 from fastapi.testclient import TestClient
 
