@@ -1,1 +1,1 @@
-#Test get and posts to crosswords table in supabase
+# Test get and posts to crosswords table in supabase
