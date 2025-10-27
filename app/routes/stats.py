@@ -3,6 +3,7 @@ from app.db import supabase
 
 router = APIRouter()
 
+
 @router.post("/create_user_stats")
 def create_user_stats(user: dict):
     """
@@ -13,17 +14,23 @@ def create_user_stats(user: dict):
     """
     try:
         # Attempt to insert new stats record
-        response = supabase.table("Stats").insert({
-            "user_id": user["id"],
-            "display_name": user["display_name"],
-            "num_solo_games": 0,
-            "num_competition_games": 0,
-            "fastest_solo_time": 0,
-            "fastest_competition_time": 0,
-            "num_wins": 0,
-            "dt_last_seen": None,
-            "streak_count": 0,
-        }).execute()
+        response = (
+            supabase.table("Stats")
+            .insert(
+                {
+                    "user_id": user["id"],
+                    "display_name": user["display_name"],
+                    "num_solo_games": 0,
+                    "num_competition_games": 0,
+                    "fastest_solo_time": 0,
+                    "fastest_competition_time": 0,
+                    "num_wins": 0,
+                    "dt_last_seen": None,
+                    "streak_count": 0,
+                }
+            )
+            .execute()
+        )
 
         # ✅ Modern client: use response.data, no .error attribute
         if not response.data:
