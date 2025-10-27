@@ -1,3 +1,4 @@
+# Handle get and posts to the user stats table
 from fastapi import APIRouter, HTTPException
 from app.db import supabase
 
