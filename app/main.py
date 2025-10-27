@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.db import supabase
 from fastapi.middleware.cors import CORSMiddleware
+from app.routes import stats
 
 app = FastAPI()
 
@@ -27,3 +28,6 @@ def home():
 def get_users():
     data = supabase.table("users").select("*").execute()
     return data.data
+
+
+app.include_router(stats.router, prefix="/stats", tags=["Stats"])
