@@ -30,8 +30,27 @@ jobs:
             . venv/bin/activate
             mypy .
 
+  run-unit-tests:
+    docker:
+      - image: cimg/python:3.11
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt  # make sure pytest is installed
+      - run:
+          name: Run all unit tests
+          command: |
+            . venv/bin/activate
+            pytest tests/ -v  # run all tests in the tests folder
+
 workflows:
   version: 2
   lint_and_typecheck_workflow:
     jobs:
       - lint-and-typecheck
+      - run-unit-tests
