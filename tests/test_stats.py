@@ -7,6 +7,45 @@ client = TestClient(app)
 
 MOCK_USER = {"id": str(uuid.uuid4()), "display_name": "Test User 1"}
 
+@pytest.fixture(autouse=True)
+def mock_supabase(monkeypatch):
+    """Mock Supabase client to prevent real database calls."""
+    tables = {}
+
+    class MockResponse:
+        def __init__(self, data):
+            self.data = data
+
+    class MockTable:
+        def __init__(self, name):
+            self.name = name
+            self.inserted = []
+
+        def insert(self, data):
+            self.inserted.append(data)
+            return self
+
+        def execute(self):
+            return MockResponse(self.inserted)
+
+        def select(self, *args, **kwargs):
+            return self
+
+        def eq(self, field, value):
+            matches = [row for row in self.inserted if row.get(field) == value]
+            return MockResponse(matches)
+
+    class MockSupabase:
+        def table(self, name):
+            if name not in tables:
+                tables[name] = MockTable(name)
+            return tables[name]
+
+    monkeypatch.setattr("app.db.supabase", MockSupabase())
+
+
+    # Apply mock
+    monkeypatch.setattr("app.db.supabase", MockSupabase())
 
 def test_create_user_stats_creates_entry(monkeypatch):
     """
