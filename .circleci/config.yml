@@ -29,7 +29,8 @@ jobs:
           command: |
             . venv/bin/activate
             mypy .
-
+            
+#Runs all unit tests in the /tests folder. Fails if any unit test fails.
   run-unit-tests:
     docker:
       - image: cimg/python:3.11
@@ -46,7 +47,9 @@ jobs:
           name: Run all unit tests
           command: |
             . venv/bin/activate
-            pytest tests/ -v  # run all tests in the tests folder
+            export SUPABASE_URL="https://fake.supabase.co"
+            export SUPABASE_KEY="fake-key"
+            pytest tests/ -v 
 
 workflows:
   version: 2
