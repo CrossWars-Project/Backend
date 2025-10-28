@@ -7,6 +7,7 @@ client = TestClient(app)
 
 MOCK_USER = {"id": str(uuid.uuid4()), "display_name": "Test User 1"}
 
+
 @pytest.fixture(autouse=True)
 def mock_supabase(monkeypatch):
     """Mock Supabase client to prevent real database calls."""
@@ -43,9 +44,9 @@ def mock_supabase(monkeypatch):
 
     monkeypatch.setattr("app.db.supabase", MockSupabase())
 
-
     # Apply mock
     monkeypatch.setattr("app.db.supabase", MockSupabase())
+
 
 def test_create_user_stats_creates_entry(monkeypatch):
     """
