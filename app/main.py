@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from app.db import get_supabase
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import stats
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
