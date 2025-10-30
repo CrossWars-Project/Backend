@@ -9,6 +9,7 @@ this is a factory which returns a mock supabase for testing or the real supabase
 def get_supabase():
     """Return either the real or mock Supabase client based on environment."""
     if os.getenv("TESTING") == "1":
+        print("Using MockSupabase")
         from tests.mocks.mock_supabase import MockSupabase
 
         return MockSupabase()
