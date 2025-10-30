@@ -14,7 +14,7 @@ jobs:
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install black mypy
+            pip install -r requirements-dev.txt
 
       # Check code formatting (Black)
       - run:
