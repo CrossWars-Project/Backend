@@ -1,6 +1,6 @@
 # Handle get and posts to the user stats table
 from fastapi import APIRouter, HTTPException
-from app.db import supabase
+from app.db import get_supabase
 
 router = APIRouter()
 
@@ -13,6 +13,7 @@ def create_user_stats(user: dict):
       - 'display_name': string
     Inserts default stats row for new user.
     """
+    supabase = get_supabase()
     try:
         # Attempt to insert new stats record
         response = (
@@ -46,6 +47,7 @@ def create_user_stats(user: dict):
 
 @router.get("/get_user_stats/{user_id}")
 def get_user_stats(user_id: str):
+    supabase = get_supabase()
     try:
         response = supabase.table("Stats").select("*").eq("user_id", user_id).execute()
 
