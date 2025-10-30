@@ -1,10 +1,9 @@
 import pytest
+import os
 
 
 @pytest.fixture(autouse=True)
 def set_testing_env(monkeypatch):
-    """
-    Automatically set TESTING=1 for all tests so that the
-    Supabase factory loads the mock client instead of the real one. See app/db.py for why this logic matters.
-    """
-    monkeypatch.setenv("TESTING", "1")
+    # Only set TESTING=1 when running pytest
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        monkeypatch.setenv("TESTING", "1")
