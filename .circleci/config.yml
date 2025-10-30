@@ -37,17 +37,13 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install dependencies
+          name: Install dependencies and run all unit tests
           command: |
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
-      - run:
-          name: Run all unit tests
-          command: |
-            . venv/bin/activate
             export SUPABASE_URL="https://fake.supabase.co"
             export SUPABASE_KEY="fake-key"
             pytest tests/ -v 
