@@ -12,7 +12,6 @@ def get_supabase():
         return _supabase_instance
 
     if os.getenv("TESTING") == "1":
-        print("Using MockSupabase")
         from tests.mocks.mock_supabase import MockSupabase
 
         _supabase_instance = MockSupabase()
