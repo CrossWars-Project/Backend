@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.db import supabase
+from app.db import get_supabase
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import stats
 
@@ -26,6 +26,7 @@ def home():
 
 @app.get("/users")
 def get_users():
+    supabase = get_supabase()
     data = supabase.table("users").select("*").execute()
     return data.data
 
