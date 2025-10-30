@@ -19,7 +19,7 @@ def test_create_user_stats_creates_entry():
     assert data["exists"] is False
     assert data["data"] == []
 
-    # test successful post. 
+    # test successful post.
     res2 = client.post("/stats/create_user_stats", json=MOCK_USER)
     assert res2.status_code == 200
     data2 = res2.json()
