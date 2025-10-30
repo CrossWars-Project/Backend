@@ -1,2 +1,3 @@
 black
 mypy
+pytest>=8.0
