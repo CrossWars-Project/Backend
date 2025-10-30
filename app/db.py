@@ -4,6 +4,7 @@ from supabase import create_client
 
 _supabase_instance = None
 
+
 def get_supabase():
     """Return either the real or mock Supabase client based on environment."""
     global _supabase_instance
@@ -13,6 +14,7 @@ def get_supabase():
     if os.getenv("TESTING") == "1":
         print("Using MockSupabase")
         from tests.mocks.mock_supabase import MockSupabase
+
         _supabase_instance = MockSupabase()
     else:
         url = os.getenv("SUPABASE_URL")
