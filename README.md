@@ -8,4 +8,4 @@ It uses **FastAPI** as the web framework, **Supabase** as the database and authe
 - [Setup](https://github.com/CrossWars-Project/Reports-and-Documents/blob/main/dev_guides/setup.md/#backend-setup)
 - [Workflow](https://github.com/CrossWars-Project/Reports-and-Documents/blob/main/dev_guides/setup.md/#backend-workflow)
 - [Coding Guidelines](https://github.com/CrossWars-Project/Reports-and-Documents/blob/main/dev_guides/coding-guidelines.md)
-- [Testing](https://github.com/CrossWars-Project/Reports-and-Documents/blob/main/dev_guides/coding-guidelines.md)
+- [Testing](https://github.com/CrossWars-Project/Reports-and-Documents/blob/main/dev_guides/testing.md#backend)
