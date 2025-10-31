@@ -43,4 +43,32 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
         )
 
 
-# TODO: on the front end side, make sure to include the JWT token in the Authorization
+# Helpers for optional user dependency for inviting someone who doesn't have an account
+async def get_current_user_optional(
+    authorization: Optional[str] = Header(None),
+) -> Optional[dict]:
+    """
+    Same as get_current_user but returns None instead of raising error.
+    Use this for endpoints that allow both logged-in users and guests.
+    """
+    if not authorization:
+        return None
+
+    try:
+        token = authorization.replace("Bearer ", "").strip()
+        supabase = get_supabase()
+        user_response = supabase.auth.get_user(token)
+
+        if not user_response or not user_response.user:
+            return None
+
+        return {
+            "user_id": user_response.user.id,
+            "username": user_response.user.user_metadata.get("username"),
+            "email": user_response.user.email,
+        }
+    except:
+        return None
+
+
+#
