@@ -1,0 +1,16 @@
+import pytest
+import uuid
+from fastapi.testclient import TestClient
+
+# Mock user data
+MOCK_USER = {"id": str(uuid.uuid4()), "display_name": "Test User 1"}
+
+def test_create_battle():
+    from app.main import app
+
+    client = TestClient(app)
+
+def test_create_invite():
+    from app.main import app
+
+    client = TestClient(app)

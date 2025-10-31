@@ -1,6 +1,6 @@
 # Authentication dependency using Supabase JWT tokens
 from fastapi import Header, HTTPException, status
-from db import get_supabase
+from app.db import get_supabase
 from typing import Optional
 
 

@@ -1,3 +1,4 @@
 black
 mypy
 pytest>=8.0
+pytest-env

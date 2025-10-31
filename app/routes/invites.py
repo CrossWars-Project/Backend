@@ -2,8 +2,8 @@
 # routes/invites.py
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, date
-from auth import get_current_user, get_current_user_optional
-from db import get_supabase
+from app.auth import get_current_user, get_current_user_optional
+from app.db import get_supabase
 import secrets
 
 router = APIRouter()
