@@ -1,6 +1,6 @@
 # Authentication dependency using Supabase JWT tokens
 from fastapi import Header, HTTPException, status
-from db import supabase
+from db import get_supabase
 from typing import Optional
 
 
@@ -18,6 +18,8 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
     try:
         # Remove 'Bearer ' prefix from token
         token = authorization.replace("Bearer ", "").strip()
+
+        supabase = get_supabase()
 
         # Verify token with Supabase
         user_response = supabase.auth.get_user(token)
