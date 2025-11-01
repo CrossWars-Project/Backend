@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.db import get_supabase
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import stats
+from app.routes import stats, invites
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -35,3 +35,4 @@ def get_users():
 
 
 app.include_router(stats.router, prefix="/stats", tags=["Stats"])
+app.include_router(invites.router, prefix="/invites", tags=["invites"])

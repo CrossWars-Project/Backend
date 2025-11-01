@@ -1,0 +1,46 @@
+# Testing formula
+# def test_[function_name]_[scenario]_[expected_outcome](self):
+# Test description explaining WHY this test matters
+
+# 1. ARRANGE (Setup)
+# - Set up test data
+# - Configure mocks
+# - Prepare inputs
+# supabase = get_supabase()
+# supabase.auth.add_user("token", "user_id", "email", "username")  # Setup valid user
+
+# 2. ACT (Execute)
+# - Call the function being tested
+# - Perform the action
+
+# For functions that should SUCCEED:
+# result = asyncio.run(get_current_user("Bearer valid_token"))
+
+# For functions that should FAIL:
+# with pytest.raises(HTTPException) as exc_info:
+#     asyncio.run(get_current_user("Bearer invalid_token"))
+
+# For HTTP endpoints:
+# response = client.get("/endpoint", headers={"Authorization": "Bearer token"})
+
+
+# 3. ASSERT (Verify)
+# - Check the results match expectations
+# - Verify side effects
+# - Confirm error handling
+# Success scenarios:
+# assert result["user_id"] == "expected_id"
+# assert result["email"] == "expected@email.com"
+
+# Failure scenarios:
+# assert exc_info.value.status_code == 401  # Correct HTTP status
+# assert "expected error message" in exc_info.value.detail
+# or 
+# response = client.get("/endpoint")
+# assert response.status_code == 401
+# error_detail = response.json().get("detail", "")
+# assert "expected error message" in error_detail
+
+# HTTP responses:
+# assert response.status_code == 200
+# assert response.json()["key"] == "expected_value"
