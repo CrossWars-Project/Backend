@@ -31,6 +31,8 @@ class TestInvites:
         # Verify invite creation succeeded
         assert response.status_code == 200
         assert response.json()["success"] == True
+        assert "invite_token" in response.json()
+        assert "battle_id" in response.json()
         print("Invite Token:", response.json()["invite_token"])
 
     def test_create_invite_invalid_token(self):
