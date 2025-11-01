@@ -73,7 +73,7 @@ async def create_invite(current_user: dict = Depends(get_current_user)):
             ).execute()  # Rollback battle creation if invite fails
             raise HTTPException(status_code=500, detail="Failed to create invite.")
 
-        return {"success": True, "invite_token": invite_token}
+        return {"success": True, "invite_token": invite_token, "battle_id": battle_id}
     except HTTPException:
         # Re-raise HTTPExceptions (like the "Invalid or expired token" above)
         raise
