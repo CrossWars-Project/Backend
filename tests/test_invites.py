@@ -7,6 +7,7 @@ from app.db import get_supabase
 
 client = TestClient(app)
 
+
 class TestInvites:
     """Test invites routes and logic"""
 
@@ -14,16 +15,18 @@ class TestInvites:
         """Reset mock before each test"""
         supabase = get_supabase()
         supabase.reset()
-    
+
     def test_create_invite_auth_user(self):
         """Ensure logged-in users can create invites"""
 
-        #Setup valid user in mock supabase
+        # Setup valid user in mock supabase
         supabase = get_supabase()
         supabase.auth.add_user("valid_token", "user_111", "u1@example.com", "testuser")
 
         # Call create_invite endpoint
-        response = client.post("/invites/create", headers={"Authorization": "Bearer valid_token"})
+        response = client.post(
+            "/invites/create", headers={"Authorization": "Bearer valid_token"}
+        )
 
         # Verify invite creation succeeded
         assert response.status_code == 200
@@ -33,13 +36,12 @@ class TestInvites:
     def test_create_invite_invalid_token(self):
         """Test invite creation with invalid token"""
         response = client.post(
-            "/invites/create", 
-            headers={"Authorization": "Bearer invalid_token"}
+            "/invites/create", headers={"Authorization": "Bearer invalid_token"}
         )
         assert response.status_code == 401
         error_detail = response.json().get("detail", "")
         assert "Invalid or expired token" in error_detail
-    
+
     def test_create_invite_guest_user(self):
         """Ensure guest users cannot create invites"""
 
@@ -48,4 +50,3 @@ class TestInvites:
         assert response.status_code == 401
         error_detail = response.json().get("detail", "")
         assert "Authorization header missing" in error_detail
-    
