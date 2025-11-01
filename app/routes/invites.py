@@ -74,10 +74,12 @@ async def create_invite(current_user: dict = Depends(get_current_user)):
             raise HTTPException(status_code=500, detail="Failed to create invite.")
 
         return {"success": True, "invite_token": invite_token}
-
+    except HTTPException:
+        # Re-raise HTTPExceptions (like the "Invalid or expired token" above)
+        raise
     except Exception as e:
         print("Error creating invite:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to create Invite")
 
     # @router.post("/accept/{invite_token}")
     # async def accept_invite(invite_token: str, current_user: dict | None = Depends(get_current_user_optional)):
