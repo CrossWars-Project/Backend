@@ -35,11 +35,11 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
             "username": user_response.user.user_metadata.get("username"),
             "email": user_response.user.email,
         }
-
+    
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Authentication failed: {str(e)}",
+            detail="Invalid or expired token",
         )
 
 
