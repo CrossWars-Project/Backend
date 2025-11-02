@@ -1,0 +1,8 @@
+pycrossword-generator==0.3.0
+openai>=2.0.0
+flask-cors>=3.0.10
+pytest>=7.0.0
+
+## install with:
+## pip install --upgrade pip setuptools wheel
+## pip install -r generator-requirements.txt
