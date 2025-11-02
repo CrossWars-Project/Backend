@@ -13,6 +13,7 @@ Requires:
 - OPENAI package (pip install openai)
 - pycrossword package (pip install pycrossword)
  -For setup and operation, read generator_README.md file. 
+ - ALWAYS USE INSIDE VENV313!!
 """
 
 import os
@@ -22,9 +23,16 @@ from pathlib import Path
 from typing import List
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
+from dotenv import load_dotenv
+
+load_dotenv()
+
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    raise ValueError("OPENAI_API_KEY not found in environment variables.")
 
 # ------------------ Put your OpenAI API key here ------------------
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = api_key
 # ------------------------------------------------------------------
 
 # OpenAI Responses client
