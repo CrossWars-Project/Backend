@@ -37,3 +37,9 @@ typing_extensions==4.15.0
 uvicorn==0.38.0
 websockets==15.0.1
 yarl==1.22.0
+pycrossword-generator==0.3.0
+openai>=2.0.0
+flask-cors>=3.0.10
+pytest>=7.0.0
+dotenv>=0.9.0
+
