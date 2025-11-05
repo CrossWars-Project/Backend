@@ -2,6 +2,60 @@
 """
 Tests for the crossword generator FastAPI routes.
 """
+# tests/test_generator.py (top of file BEFORE other imports)
+
+import sys
+import types
+
+# --- Fake minimal `flask` module so importing generator.py won't require real Flask ---
+_fake_flask = types.ModuleType("flask")
+
+# Minimal Dummy Flask class: supports Flask(...) and .route decorator usage
+class _DummyFlask:
+    def __init__(self, *args, **kwargs):
+        # store routes if you want (not needed)
+        self._routes = []
+
+    def route(self, *args, **kwargs):
+        # decorator that returns the original function unchanged
+        def decorator(func):
+            self._routes.append((args, kwargs, func))
+            return func
+        return decorator
+
+    def run(self, *args, **kwargs):
+        # no-op for tests
+        return None
+
+# Minimal request object (only structure; route handlers aren't executed in tests)
+_fake_request = types.SimpleNamespace(get_json=lambda *a, **k: None)
+
+# Minimal helpers used by your generator module
+def _fake_jsonify(x):
+    return x
+
+def _fake_make_response(x, code=None):
+    # Flask make_response returns a Response object; tests usually don't execute Flask handlers,
+    # so returning the raw payload is fine for import-time safety.
+    return x
+
+# Attach attributes expected by `from flask import Flask, request, jsonify, make_response`
+_fake_flask.Flask = _DummyFlask
+_fake_flask.request = _fake_request
+_fake_flask.jsonify = _fake_jsonify
+_fake_flask.make_response = _fake_make_response
+
+# Insert into sys.modules so `import flask` returns the fake module
+sys.modules["flask"] = _fake_flask
+
+# --- Fake minimal `flask_cors` module with a no-op CORS() ---
+_fake_cors = types.ModuleType("flask_cors")
+def _fake_CORS(app, *args, **kwargs):
+    return None
+_fake_cors.CORS = _fake_CORS
+sys.modules["flask_cors"] = _fake_cors
+
+# Now safe to import the rest of the test file (and app.generator)
 
 import json
 import importlib
