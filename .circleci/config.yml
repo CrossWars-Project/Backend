@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   lint-and-typecheck:
     docker:
-      - image: cimg/python:3.11  # CircleCI image with Python preinstalled
+      - image: cimg/python:3.13  # CircleCI image with Python preinstalled
     steps:
       - checkout
 
