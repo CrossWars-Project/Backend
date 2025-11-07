@@ -33,7 +33,7 @@ jobs:
 #Runs all unit tests in the /tests folder. Fails if any unit test fails.
   run-unit-tests:
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.13
     steps:
       - checkout
       - run:
