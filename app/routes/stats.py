@@ -62,6 +62,7 @@ def get_user_stats(user_id: str):
 
 from datetime import datetime, timedelta
 
+
 @router.put("/update_user_stats")
 def update_user_stats(user: dict):
     """
