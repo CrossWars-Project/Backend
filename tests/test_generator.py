@@ -26,14 +26,21 @@ def test_generate_endpoint_success_returns_generated_json():
         "words_sent": ["A", "B"],
         "dimensions": {"cols": 5, "rows": 5},
         "placed_words": [["A", 0, 0, True]],
-        "grid": [["A", "-", "-", "-", "-"], ["-", "-", "-", "-", "-"], ["-", "-", "-", "-", "-"], ["-", "-", "-", "-", "-"], ["-", "-", "-", "-", "-"]],
+        "grid": [
+            ["A", "-", "-", "-", "-"],
+            ["-", "-", "-", "-", "-"],
+            ["-", "-", "-", "-", "-"],
+            ["-", "-", "-", "-", "-"],
+            ["-", "-", "-", "-", "-"],
+        ],
         "clues": {"A": ["Clue A"]},
         "clues_across": ["Clue A"],
-        "clues_down": []
+        "clues_down": [],
     }
 
     # ARRANGE: monkeypatch the generator to return the sample result
     import app.generator as gen_mod
+
     original = getattr(gen_mod, "build_and_save", None)
     try:
         gen_mod.build_and_save = lambda theme: sample
@@ -77,6 +84,7 @@ def test_generate_endpoint_generator_failure_returns_500():
     - This verifies that the endpoint maps internal failures to HTTP 500 with a clear message.
     """
     import app.generator as gen_mod
+
     original = getattr(gen_mod, "build_and_save", None)
 
     def _raise(theme):

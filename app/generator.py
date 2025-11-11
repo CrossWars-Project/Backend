@@ -42,6 +42,7 @@ from openai import OpenAI
 from pycrossword import generate_crossword
 from pycrossword import OpenAIClient, ClueGenerator, ClueDifficulty
 
+
 # CLI-style render function from pycrossword._utils (copied behavior)
 def render_crossword(placed_words: list, dimensions: list):
     grid = [["-" for _ in range(dimensions[0])] for _ in range(dimensions[1])]
@@ -54,6 +55,7 @@ def render_crossword(placed_words: list, dimensions: list):
                 grid[items[1] + i][items[2]] = items[0][i]
     return grid
 
+
 # Convert list/tuple output into JSON-serializable structure if necessary
 def _to_json_serializable(obj):
     if isinstance(obj, dict):
@@ -63,6 +65,7 @@ def _to_json_serializable(obj):
     if isinstance(obj, (str, int, float, bool)) or obj is None:
         return obj
     return str(obj)
+
 
 # parse model text into list of words (robust)
 def parse_words_from_model(text: str) -> List[str]:
@@ -80,7 +83,9 @@ def parse_words_from_model(text: str) -> List[str]:
         try:
             parsed = json.loads(m.group(1))
             if isinstance(parsed, list):
-                return [str(w).strip().upper() for w in parsed if isinstance(w, (str, int))]
+                return [
+                    str(w).strip().upper() for w in parsed if isinstance(w, (str, int))
+                ]
         except Exception:
             pass
     # fallback split
@@ -92,16 +97,21 @@ def parse_words_from_model(text: str) -> List[str]:
             words.append(t)
     return words
 
+
 # Ask OpenAI Responses API for words given a theme
-def ask_openai_for_words(theme: str, max_words: int = 16, max_output_tokens: int = 1000) -> List[str]:
+def ask_openai_for_words(
+    theme: str, max_words: int = 16, max_output_tokens: int = 1000
+) -> List[str]:
     if not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-REPLACE"):
-        raise RuntimeError("OPENAI_API_KEY not set inside backend/api.py. Please edit file and add your key.")
+        raise RuntimeError(
+            "OPENAI_API_KEY not set inside backend/api.py. Please edit file and add your key."
+        )
     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
     client = OpenAI()
 
     prompt = (
-        f"Return a JSON array (e.g. [\"OCEAN\",\"WAVE\",...]) of up to {max_words} single-word terms "
-        f"related to the theme \"{theme}\". ALL words must be alphabetic and 3 to 5 letters long. "
+        f'Return a JSON array (e.g. ["OCEAN","WAVE",...]) of up to {max_words} single-word terms '
+        f'related to the theme "{theme}". ALL words must be alphabetic and 3 to 5 letters long. '
         "Return only the JSON array — do not add any commentary, explanations, steps, or extra text. "
         "Do not include numbers or other tokens."
     )
@@ -135,6 +145,7 @@ def ask_openai_for_words(theme: str, max_words: int = 16, max_output_tokens: int
             seen.add(w2)
     return filtered[:max_words]
 
+
 # Generate clues using pycrossword's ClueGenerator (documented API)
 def generate_clues(words: List[str]) -> dict:
     # using pycrossword's OpenAIClient and ClueGenerator
@@ -143,6 +154,7 @@ def generate_clues(words: List[str]) -> dict:
     clues = clue_generator.create(words)
     # clue_generator.create returns a mapping word -> list of clue strings per docs
     return clues
+
 
 # Build final JSON response, write to latest_crossword.json
 def build_and_save(theme: str):
@@ -166,8 +178,16 @@ def build_and_save(theme: str):
 
     # 5) organize clues by across/down
     if clues:
-        across_clues = [clues[p[0]][0] for p in placed_words if p[3] and clues.get(p[0]) and clues[p[0]]]
-        down_clues   = [clues[p[0]][0] for p in placed_words if not p[3] and clues.get(p[0]) and clues[p[0]]]
+        across_clues = [
+            clues[p[0]][0]
+            for p in placed_words
+            if p[3] and clues.get(p[0]) and clues[p[0]]
+        ]
+        down_clues = [
+            clues[p[0]][0]
+            for p in placed_words
+            if not p[3] and clues.get(p[0]) and clues[p[0]]
+        ]
     else:
         across_clues = []
         down_clues = []
@@ -191,21 +211,28 @@ def build_and_save(theme: str):
 
     return response_obj
 
+
 # Flask app
 app = Flask(__name__)
 CORS(app)
+
 
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
     body = request.get_json(force=True, silent=True) or {}
     theme = (body.get("theme") or "").strip()
     if not theme:
-        return make_response(jsonify({"error": "theme required in JSON body {\"theme\":\"...\"}"}), 400)
+        return make_response(
+            jsonify({"error": 'theme required in JSON body {"theme":"..."}'}), 400
+        )
     try:
         result = build_and_save(theme)
         return jsonify(result)
     except Exception as e:
-        return make_response(jsonify({"error": "generation failed", "details": str(e)}), 500)
+        return make_response(
+            jsonify({"error": "generation failed", "details": str(e)}), 500
+        )
+
 
 @app.route("/api/latest", methods=["GET"])
 def api_latest():
@@ -215,7 +242,7 @@ def api_latest():
     with open(file_path, "r", encoding="utf-8") as f:
         return jsonify(json.load(f))
 
+
 if __name__ == "__main__":
     # quick local run
     app.run(host="127.0.0.1", port=5000, debug=True)
-
