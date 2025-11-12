@@ -10,6 +10,7 @@ import traceback
 
 router = APIRouter()
 
+
 @router.post("/generate")
 def generate_crossword(payload: dict):
     """
@@ -19,7 +20,9 @@ def generate_crossword(payload: dict):
     """
     theme = (payload.get("theme") or "").strip() if isinstance(payload, dict) else ""
     if not theme:
-        raise HTTPException(status_code=400, detail='Request JSON must include {"theme":"..."}')
+        raise HTTPException(
+            status_code=400, detail='Request JSON must include {"theme":"..."}'
+        )
 
     try:
         # Import lazily so the route file can be imported even if generator.py is not present yet
@@ -27,10 +30,16 @@ def generate_crossword(payload: dict):
     except Exception as e:
         print("Error importing app.generator:", e)
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Generator module not available. Ensure app/generator.py exists and exports build_and_save().")
+        raise HTTPException(
+            status_code=500,
+            detail="Generator module not available. Ensure app/generator.py exists and exports build_and_save().",
+        )
 
     if not hasattr(generator, "build_and_save"):
-        raise HTTPException(status_code=500, detail="Generator module missing build_and_save(theme) function.")
+        raise HTTPException(
+            status_code=500,
+            detail="Generator module missing build_and_save(theme) function.",
+        )
 
     try:
         result = generator.build_and_save(theme)
@@ -51,6 +60,7 @@ def get_latest_crossword():
     """
     try:
         import app.generator as genmod
+
         base = Path(genmod.__file__).parent
         file_path = base / "latest_crossword.json"
     except Exception:
@@ -58,7 +68,9 @@ def get_latest_crossword():
         file_path = Path(__file__).parent.parent / "latest_crossword.json"
 
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail="No latest_crossword.json file found")
+        raise HTTPException(
+            status_code=404, detail="No latest_crossword.json file found"
+        )
 
     try:
         with open(file_path, "r", encoding="utf-8") as f:
@@ -67,5 +79,6 @@ def get_latest_crossword():
     except Exception as e:
         print("Error reading latest_crossword.json:", e)
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to read latest_crossword.json: {e}")
-
+        raise HTTPException(
+            status_code=500, detail=f"Failed to read latest_crossword.json: {e}"
+        )
