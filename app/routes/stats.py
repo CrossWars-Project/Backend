@@ -81,7 +81,7 @@ def update_user_stats(user: dict):
         # Get existing stats
         response = supabase.table("Stats").select("*").eq("user_id", user_id).execute()
         if not response.data:
-            raise HTTPException(status_code=404, detail="User stats not found")
+            raise HTTPException(status_code=404, detail="User not found")
 
         current = response.data[0]
         updated_fields = {}
@@ -130,6 +130,8 @@ def update_user_stats(user: dict):
 
         return {"success": True, "updated_data": update_res.data}
 
+    except HTTPException:
+        raise
     except Exception as e:
         print("Error updating user stats:", e)
         raise HTTPException(status_code=500, detail=str(e))

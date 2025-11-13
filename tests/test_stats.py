@@ -61,6 +61,7 @@ def test_update_user_stats():
             "num_wins": 2,
             "num_solo_games": 1,
             "num_competition_games": 3,
+            "fastest_solo_time": 70,
         },
     )
     assert res5.status_code == 200
@@ -70,6 +71,7 @@ def test_update_user_stats():
     assert updated_data["num_wins"] >= 2
     assert updated_data["num_solo_games"] >= 1
     assert updated_data["num_competition_games"] >= 3
+    assert updated_data["fastest_solo_time"] == 70
 
     # test that updating with a worse fastest time does not change it
     res6 = client.put(
