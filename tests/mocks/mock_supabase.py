@@ -49,19 +49,26 @@ class MockTable:
         Mock: Just append to a list
         """
         import uuid
+        from datetime import datetime, timedelta
 
         # Generate ID if missing (real Supabase does this)
         if "id" not in data:
             data["id"] = str(uuid.uuid4())
+
+        # Add default timestamps for invites
+        if self.name == "invites":
+            if "created_at" not in data:
+                data["created_at"] = datetime.now().isoformat()
+            if "expires_at" not in data:
+                data["expires_at"] = (datetime.now() + timedelta(hours=24)).isoformat()
+            if "status" not in data:
+                data["status"] = "ACTIVE"  # Changed from True to "ACTIVE"
 
         # Store it (instead of sending to DB)
         self.inserted.append(data.copy())  # .copy() to avoid reference issues
 
         return self
 
-    # def select(self, *args, **kwargs):
-
-    #   return self
     def select(self, fields="*"):
         """
         Real Supabase: Specifies columns to return
@@ -70,16 +77,53 @@ class MockTable:
         self.select_fields = fields
         return self
 
+    def update(self, data):
+        """
+        Real Supabase: Updates rows in the database
+        Mock: Just remember the data, apply in execute()
+        """
+        self.update_data = data
+        return self
+
     def eq(self, field, value):
-        self.filters.append((field, value))
+        self.filters.append(("eq", field, value))  # Store as tuple with type
         return self
 
     def execute(self):
-        results = self.inserted
-        for field, value in self.filters:
-            results = [row for row in results if row.get(field) == value]
-        self.filters = []
-        return MockResponse(results)
+        """Execute the query and return results"""
+        if self.update_data:
+            # Handle UPDATE operation
+            updated_rows = []
+            for row in self.inserted:
+                # Apply ALL filters - ALL must match for update
+                matches = True
+                for filter_type, field, value in self.filters:
+                    if filter_type == "eq" and row.get(field) != value:
+                        matches = False
+                        break
+
+                if matches:
+                    # Update this row
+                    row.update(self.update_data)
+                    updated_rows.append(row.copy())  # Return copy of updated row
+
+            # Clear filters and update data for next query
+            self.filters = []
+            self.update_data = None
+            return MockResponse(updated_rows)
+
+        else:
+            # Handle SELECT operation
+            results = self.inserted.copy()
+
+            # Apply filters
+            for filter_type, field, value in self.filters:
+                if filter_type == "eq":
+                    results = [row for row in results if row.get(field) == value]
+
+            # Clear filters for next query
+            self.filters = []
+            return MockResponse(results)
 
 
 class MockSupabase:

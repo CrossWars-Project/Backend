@@ -8,11 +8,11 @@ Flask API endpoint that:
 This file is additive — it does not change existing scripts.
 
 Requires:
-- flask 
+- flask
 - Python 3.12+ (use .venv313)
 - OPENAI package (pip install openai)
 - pycrossword package (pip install pycrossword)
- -For setup and operation, read generator_README.md file. 
+ -For setup and operation, read generator_README.md file.
  - ALWAYS USE INSIDE VENV313!!
 """
 
