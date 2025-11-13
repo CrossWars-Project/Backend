@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   lint-and-typecheck:
     docker:
-      - image: cimg/python:3.11  # CircleCI image with Python preinstalled
+      - image: cimg/python:3.13  # CircleCI image with Python preinstalled
     steps:
       - checkout
 
@@ -33,7 +33,7 @@ jobs:
 #Runs all unit tests in the /tests folder. Fails if any unit test fails.
   run-unit-tests:
     docker:
-      - image: cimg/python:3.12
+      - image: cimg/python:3.13
     steps:
       - checkout
       - run:
