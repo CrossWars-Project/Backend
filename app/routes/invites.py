@@ -95,6 +95,7 @@ async def accept_invite(
             supabase.table("invites")
             .select("*")  # we will need the battle_id, status
             .eq("invite_token", invite_token)
+            .execute()
         )
 
         if not invites_response.data:
@@ -105,10 +106,7 @@ async def accept_invite(
         expires_at = invites_response.data[0]["expires_at"]
         now = datetime.now().isoformat()
 
-        # check invite status and expiration
-        if invite_status != "ACTIVE":
-            raise HTTPException(status_code=400, detail="Invite is not active.")
-        if now > expires_at:
+        if invite_status == "EXPIRED" or now > expires_at:
             supabase.table("invites").update({"status": "EXPIRED"}).eq(
                 "invite_token", invite_token
             ).execute()
