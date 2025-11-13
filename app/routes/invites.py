@@ -11,7 +11,9 @@ router = APIRouter()
 
 
 @router.post("/create")
-async def create_invite(current_user: dict = Depends(get_current_user))-> Dict[str, Union[bool, str]]:
+async def create_invite(
+    current_user: dict = Depends(get_current_user),
+) -> Dict[str, Union[bool, str]]:
     """Create a new battle invite for the logged-in-user to share with their friend."""
     """
     Flow:
@@ -85,7 +87,7 @@ async def create_invite(current_user: dict = Depends(get_current_user))-> Dict[s
 @router.post("/accept/{invite_token}")
 async def accept_invite(
     invite_token: str, current_user: dict | None = Depends(get_current_user_optional)
-)-> Dict[str, Union[bool, str]]:
+) -> Dict[str, Union[bool, str]]:
     """
     Accepts an invite and joins the battle. Works for logged in users and guests.
     """
