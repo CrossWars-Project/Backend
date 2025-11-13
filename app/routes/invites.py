@@ -1,5 +1,6 @@
 # Handle get and posts to the invites table
 # routes/invites.py
+from typing import Dict, Union, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, date
 from app.auth import get_current_user, get_current_user_optional
@@ -10,7 +11,7 @@ router = APIRouter()
 
 
 @router.post("/create")
-async def create_invite(current_user: dict = Depends(get_current_user)):
+async def create_invite(current_user: dict = Depends(get_current_user))-> Dict[str, Union[bool, str]]:
     """Create a new battle invite for the logged-in-user to share with their friend."""
     """
     Flow:
@@ -84,7 +85,7 @@ async def create_invite(current_user: dict = Depends(get_current_user)):
 @router.post("/accept/{invite_token}")
 async def accept_invite(
     invite_token: str, current_user: dict | None = Depends(get_current_user_optional)
-):
+)-> Dict[str, Union[bool, str]]:
     """
     Accepts an invite and joins the battle. Works for logged in users and guests.
     """
@@ -145,7 +146,7 @@ async def accept_invite(
 
         # update battle with player 2 info (guest or auth user)
 
-        battle_update = {
+        battle_update: Dict[str, Union[str, bool, None]] = {
             "status": "READY",
         }
 
