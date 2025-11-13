@@ -31,7 +31,7 @@ async def create_invite(current_user: dict = Depends(get_current_user)):
         now = datetime.now()
         expires_at = now.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-        # Attempt to insert new battle for if invite is accepted
+        # Attempt to insert new battle
         battles_response = (
             supabase.table("battles")
             .insert(
@@ -51,7 +51,6 @@ async def create_invite(current_user: dict = Depends(get_current_user)):
         battle_id = battles_response.data[0]["id"]
 
         # Attempt to insert new invite record
-        # Attempt to insert new battle for if invite is accepted
         invites_response = (
             supabase.table("invites")
             .insert(
@@ -81,11 +80,108 @@ async def create_invite(current_user: dict = Depends(get_current_user)):
         print("Error creating invite:", e)
         raise HTTPException(status_code=500, detail="Failed to create Invite")
 
-    # @router.post("/accept/{invite_token}")
-    # async def accept_invite(invite_token: str, current_user: dict | None = Depends(get_current_user_optional)):
+
+@router.post("/accept/{invite_token}")
+async def accept_invite(
+    invite_token: str, current_user: dict | None = Depends(get_current_user_optional)
+):
     """
     Accepts an invite and joins the battle. Works for logged in users and guests.
     """
+    try:
+        # validate invite
+        supabase = get_supabase()
+        invites_response = (
+            supabase.table("invites")
+            .select("*")  # we will need the battle_id, status
+            .eq("invite_token", invite_token)
+        )
+
+        if not invites_response.data:
+            raise HTTPException(status_code=404, detail="Could not find invite.")
+
+        battle_id = invites_response.data[0]["battle_id"]
+        invite_status = invites_response.data[0]["status"]
+        expires_at = invites_response.data[0]["expires_at"]
+        now = datetime.now().isoformat()
+
+        # check invite status and expiration
+        if invite_status != "ACTIVE":
+            raise HTTPException(status_code=400, detail="Invite is not active.")
+        if now > expires_at:
+            supabase.table("invites").update({"status": "EXPIRED"}).eq(
+                "invite_token", invite_token
+            ).execute()
+            raise HTTPException(status_code=400, detail="Invite has expired.")
+
+        # dont allow battle against self
+        if (
+            current_user
+            and current_user["user_id"] == invites_response.data[0]["inviter_id"]
+        ):
+            raise HTTPException(
+                status_code=400, detail="Cannot accept your own invite."
+            )
+
+        # concurency protection: only one can accept
+        invite_update_response = {"status": "ACCEPTED", "accepted_at": now}
+
+        if current_user:
+            invite_update_response["invitee_id"] = current_user["user_id"]
+
+        # update invite if status is still ACTIVE
+        updated_invite = (
+            supabase.table("invites")
+            .update(invite_update_response)
+            .eq("invite_token", invite_token)
+            .eq("status", "ACTIVE")  # concurrency protection
+            .execute()
+        )
+
+        # check if update succeeded
+        if not updated_invite.data or len(updated_invite.data) == 0:
+            raise HTTPException(
+                status_code=409,
+                detail="Invite has already been accepted by another user.",
+            )
+
+        # update battle with player 2 info (guest or auth user)
+
+        battle_update = {
+            "status": "READY",
+        }
+
+        if current_user:
+            battle_update["player2_id"] = current_user["user_id"]  # auth user
+            battle_update["player2_is_guest"] = False
+        else:
+            battle_update["player2_id"] = None  # Guest user
+            battle_update["player2_is_guest"] = True
+
+        update_battles = (
+            supabase.table("battles")
+            .update(battle_update)
+            .eq("id", battle_id)
+            .execute()
+        )
+
+        if not update_battles.data:
+            raise HTTPException(
+                status_code=500, detail="Failed to update battle with player 2."
+            )
+
+        return {
+            "success": True,
+            "battle_id": battle_id,
+            "is_guest": current_user is None,
+        }
+
+    except HTTPException:
+        # Re-raise HTTPExceptions (like the "Invalid or expired token" above)
+        raise
+    except Exception as e:
+        print("Error accepting invite:", e)
+        raise HTTPException(status_code=500, detail="Failed to accept Invite")
     """
     Flow:
     1. Fetch invite and validate (active, not expired)
