@@ -1,4 +1,4 @@
-#handles game room actions (ready, start, complete)
+# handles game room actions (ready, start, complete)
 from typing import Dict, Union, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, date
@@ -8,7 +8,8 @@ import secrets
 
 router = APIRouter()
 
-#fetch battle id 
+
+# fetch battle id
 @router.post("/{battle_id}")
 async def get_battle(
     battle_id: str, current_user: dict | None = Depends(get_current_user_optional)
@@ -20,15 +21,12 @@ async def get_battle(
 
         # Attempt to fetch battle by id
         battle_response = (
-            supabase.table("battles")
-            .select("*")
-            .eq("id", battle_id)
-            .execute()
+            supabase.table("battles").select("*").eq("id", battle_id).execute()
         )
 
         if not battle_response.data:
             raise HTTPException(status_code=404, detail="Battle not found.")
-        
+
         battle = battle_response.data[0]
 
         """ potentially restrict access to battle data TBD
@@ -46,12 +44,11 @@ async def get_battle(
         print("Error getting battle id:", e)
         raise HTTPException(status_code=500, detail="Failed to get battle")
 
-    
-#fetch battle ready status (ready to initiating game)
+
+# fetch battle ready status (ready to initiating game)
 @router.post("/{battle_id}/ready")
 async def mark_ready(
-    battle_id: str,
-    current_user: dict | None = Depends(get_current_user_optional)
+    battle_id: str, current_user: dict | None = Depends(get_current_user_optional)
 ):
     """Mark player as ready for battle"""
     try:
@@ -59,10 +56,7 @@ async def mark_ready(
 
         # Fetch battle to check current status
         battle_response = (
-            supabase.table("battles")
-            .select("*")
-            .eq("id", battle_id)
-            .execute()
+            supabase.table("battles").select("*").eq("id", battle_id).execute()
         )
 
         if not battle_response.data:
@@ -70,10 +64,12 @@ async def mark_ready(
 
         battle = battle_response.data[0]
 
-        #Verify battle is in progress or completed 
+        # Verify battle is in progress or completed
         if battle["status"] not in ["READY", "WAITING"]:
-            raise HTTPException(status_code=400, detail="Battle not in a joinable state.")
-        
+            raise HTTPException(
+                status_code=400, detail="Battle not in a joinable state."
+            )
+
         player = None
 
         if current_user:
@@ -83,19 +79,24 @@ async def mark_ready(
             elif user_id == battle["player2_id"]:
                 player = "player2"
             else:
-                raise HTTPException(status_code=403, detail="User not part of this battle.")
-            
-        else:#player is player 2 and a guest
-            
-            if not battle["player2_is_guest"]:#player 2 is not a guest
-                raise HTTPException(status_code=403, detail="Player 2 is not a guest and guest cannot join this battle.")
-            
+                raise HTTPException(
+                    status_code=403, detail="User not part of this battle."
+                )
+
+        else:  # player is player 2 and a guest
+
+            if not battle["player2_is_guest"]:  # player 2 is not a guest
+                raise HTTPException(
+                    status_code=403,
+                    detail="Player 2 is not a guest and guest cannot join this battle.",
+                )
+
             player = "player2"
 
         # Update ready status for the player
-        supabase.table("battles").update(
-            {f"{player}_ready": True}
-        ).eq("id", battle_id).execute()
+        supabase.table("battles").update({f"{player}_ready": True}).eq(
+            "id", battle_id
+        ).execute()
 
         return {"success": True, "message": f"{player} marked as ready."}
 
@@ -105,12 +106,14 @@ async def mark_ready(
     except Exception as e:
         print("Error marking player as ready:", e)
         raise HTTPException(status_code=500, detail="Failed to mark player as ready")
-#battle start (initiating game to in progress and set started_at)
-    #@router.post("/battles/{battle_id}/start")
-#battle complete game (status from in progress to completed and set completed_at, who won, what their time was)
-    #@router.post("/battles/{battle_id}/complete")
-#battle winner(who won the battle and their time)
-    #@router.post("/battles/{battle_id}/complete")
+
+
+# battle start (initiating game to in progress and set started_at)
+# @router.post("/battles/{battle_id}/start")
+# battle complete game (status from in progress to completed and set completed_at, who won, what their time was)
+# @router.post("/battles/{battle_id}/complete")
+# battle winner(who won the battle and their time)
+# @router.post("/battles/{battle_id}/complete")
 
 
 # frontend should also post to stats to update indidividual player stats when battle is completed
