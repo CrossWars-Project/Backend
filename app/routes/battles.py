@@ -17,7 +17,6 @@ async def get_battle(
     """Fetch battle by battle id"""
     try:
         supabase = get_supabase()
-        user_id = current_user["user_id"]
 
         # Attempt to fetch battle by id
         battle_response = (
