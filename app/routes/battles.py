@@ -48,7 +48,7 @@ async def get_battle(
 
     
 #fetch battle ready status (ready to initiating game)
-@router.post("/battles/{battle_id}/ready")
+@router.post("/{battle_id}/ready")
 async def mark_ready(
     battle_id: str,
     current_user: dict | None = Depends(get_current_user_optional)
@@ -56,7 +56,6 @@ async def mark_ready(
     """Mark player as ready for battle"""
     try:
         supabase = get_supabase()
-        user_id = current_user["user_id"]
 
         # Fetch battle to check current status
         battle_response = (
