@@ -56,6 +56,7 @@ def get_latest_crossword():
     """
     try:
         import app.generator as genmod
+
         base = Path(genmod.__file__).parent
         file_path = base / "latest_crossword.json"
     except Exception:
@@ -89,7 +90,8 @@ def get_solo_crossword():
 
     if not file_path.exists():
         raise HTTPException(
-            status_code=404, detail="No solo_play.json file found. Wait for daily generation."
+            status_code=404,
+            detail="No solo_play.json file found. Wait for daily generation.",
         )
 
     try:
@@ -114,7 +116,8 @@ def get_battle_crossword():
 
     if not file_path.exists():
         raise HTTPException(
-            status_code=404, detail="No battle_play.json file found. Wait for daily generation."
+            status_code=404,
+            detail="No battle_play.json file found. Wait for daily generation.",
         )
 
     try:

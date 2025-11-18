@@ -64,17 +64,17 @@ def pad_grid_to_5x5(grid: list) -> list:
     TARGET_SIZE = 5
     current_rows = len(grid)
     current_cols = len(grid[0]) if grid else 0
-    
+
     # Pad columns (add dashes to the right of each row)
     if current_cols < TARGET_SIZE:
         for row in grid:
             row.extend(["-"] * (TARGET_SIZE - current_cols))
-    
+
     # Pad rows (add new rows at the bottom)
     if current_rows < TARGET_SIZE:
         for _ in range(TARGET_SIZE - current_rows):
             grid.append(["-"] * TARGET_SIZE)
-    
+
     return grid
 
 
@@ -135,11 +135,11 @@ def ask_openai_for_words(
     prompt = (
         f'Return a JSON array (e.g. ["ATOM","STAR","RAIN",...]) of up to {max_words} single-word terms '
         f'related to the theme "{theme}". '
-        'IMPORTANT RULES:\n'
-        '- ALL words must be EXACTLY 3 letters long (no 5-letter words)\n'
-        '- Prefer words with common letters like A, E, I, O, R, S, T, N\n'
-        '- Use simple, common words that are easy to crossword\n'
-        '- Return ONLY the JSON array with no commentary or explanations'
+        "IMPORTANT RULES:\n"
+        "- ALL words must be EXACTLY 3 letters long (no 5-letter words)\n"
+        "- Prefer words with common letters like A, E, I, O, R, S, T, N\n"
+        "- Use simple, common words that are easy to crossword\n"
+        "- Return ONLY the JSON array with no commentary or explanations"
     )
 
     resp = client.responses.create(
@@ -201,7 +201,7 @@ def build_and_save(theme: str):
 
     # 4) render grid CLI-style
     grid = render_crossword(placed_words, dimensions)
-    
+
     # NEW: Pad grid to ensure it's always 5x5
     grid = pad_grid_to_5x5(grid)
     dimensions = (5, 5)  # Update dimensions to reflect padded size
