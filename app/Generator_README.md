@@ -36,7 +36,7 @@ The Venv313 folder sholuld already be created, in that case simply activate it u
 
 If the venv313 file is not there, install it first:
 
-python3.12 -m venv .venv312
+python3.12 -m venv .venv312 or py -m venv .venv312
 source .venv312/bin/activate
 
 

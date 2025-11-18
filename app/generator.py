@@ -56,6 +56,28 @@ def render_crossword(placed_words: list, dimensions: list):
     return grid
 
 
+# NEW: Pad grid to 5x5
+def pad_grid_to_5x5(grid: list) -> list:
+    """
+    Pad a grid to be exactly 5x5 by adding rows/columns of dashes.
+    """
+    TARGET_SIZE = 5
+    current_rows = len(grid)
+    current_cols = len(grid[0]) if grid else 0
+    
+    # Pad columns (add dashes to the right of each row)
+    if current_cols < TARGET_SIZE:
+        for row in grid:
+            row.extend(["-"] * (TARGET_SIZE - current_cols))
+    
+    # Pad rows (add new rows at the bottom)
+    if current_rows < TARGET_SIZE:
+        for _ in range(TARGET_SIZE - current_rows):
+            grid.append(["-"] * TARGET_SIZE)
+    
+    return grid
+
+
 # Convert list/tuple output into JSON-serializable structure if necessary
 def _to_json_serializable(obj):
     if isinstance(obj, dict):
@@ -109,11 +131,15 @@ def ask_openai_for_words(
     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
     client = OpenAI()
 
+    # UPDATED PROMPT
     prompt = (
-        f'Return a JSON array (e.g. ["OCEAN","WAVE",...]) of up to {max_words} single-word terms '
-        f'related to the theme "{theme}". ALL words must be alphabetic and 3 to 5 letters long. '
-        "Return only the JSON array — do not add any commentary, explanations, steps, or extra text. "
-        "Do not include numbers or other tokens."
+        f'Return a JSON array (e.g. ["ATOM","STAR","RAIN",...]) of up to {max_words} single-word terms '
+        f'related to the theme "{theme}". '
+        'IMPORTANT RULES:\n'
+        '- ALL words must be EXACTLY 3 letters long (no 5-letter words)\n'
+        '- Prefer words with common letters like A, E, I, O, R, S, T, N\n'
+        '- Use simple, common words that are easy to crossword\n'
+        '- Return ONLY the JSON array with no commentary or explanations'
     )
 
     resp = client.responses.create(
@@ -135,12 +161,12 @@ def ask_openai_for_words(
 
     words = parse_words_from_model(output_text)
 
-    # enforce <=5 and uniqueness
+    # UPDATED: enforce 3-4 letters only (filter out 5-letter words)
     seen = set()
     filtered = []
     for w in words:
         w2 = w.strip().upper()
-        if 1 <= len(w2) <= 5 and w2.isalpha() and w2 not in seen:
+        if 3 <= len(w2) <= 4 and w2.isalpha() and w2 not in seen:
             filtered.append(w2)
             seen.add(w2)
     return filtered[:max_words]
@@ -175,6 +201,10 @@ def build_and_save(theme: str):
 
     # 4) render grid CLI-style
     grid = render_crossword(placed_words, dimensions)
+    
+    # NEW: Pad grid to ensure it's always 5x5
+    grid = pad_grid_to_5x5(grid)
+    dimensions = (5, 5)  # Update dimensions to reflect padded size
 
     # 5) organize clues by across/down
     if clues:
