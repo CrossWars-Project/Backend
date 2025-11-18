@@ -3,3 +3,4 @@ mypy
 pytest>=8.0
 pytest-env
 requests>=2.28.0
+types-requests
