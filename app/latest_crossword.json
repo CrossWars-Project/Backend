@@ -1,0 +1,187 @@
+{
+  "theme": "travel",
+  "words_sent": [
+    "CAR",
+    "BUS",
+    "VAN",
+    "CAB",
+    "JET",
+    "AIR",
+    "SEA",
+    "SKY",
+    "MAP",
+    "BAG",
+    "INN",
+    "VIA",
+    "OAR",
+    "ROW",
+    "WAY",
+    "LEG"
+  ],
+  "dimensions": {
+    "cols": 5,
+    "rows": 5
+  },
+  "placed_words": [
+    [
+      "MAP",
+      1,
+      0,
+      true
+    ],
+    [
+      "BAG",
+      0,
+      1,
+      false
+    ]
+  ],
+  "grid": [
+    [
+      "-",
+      "B",
+      "-",
+      "-",
+      "-"
+    ],
+    [
+      "M",
+      "A",
+      "P",
+      "-",
+      "-"
+    ],
+    [
+      "-",
+      "G",
+      "-",
+      "-",
+      "-"
+    ],
+    [
+      "-",
+      "-",
+      "-",
+      "-",
+      "-"
+    ],
+    [
+      "-",
+      "-",
+      "-",
+      "-",
+      "-"
+    ]
+  ],
+  "clues": {
+    "CAR": [
+      "Mode of transportation commonly used by individuals in urban areas."
+    ],
+    "BUS": [
+      "Mode of public transportation that is commonly used for commuting to work or school."
+    ],
+    "VAN": [
+      "Popular mode of transportation often used to transport goods or people."
+    ],
+    "CAB": [
+      "Taxi in the city: common mode of transportation."
+    ],
+    "JET": [
+      "Fast mode of transportation that commonly flies through the sky."
+    ],
+    "AIR": [
+      "Atmospheric substance essential for breathing and flight."
+    ],
+    "SEA": [
+      "Body of water that covers approximately 70% of the Earth's surface."
+    ],
+    "SKY": [
+      "Where birds and airplanes both take flight."
+    ],
+    "MAP": [
+      "This navigational tool helps you find your way around a city or town."
+    ],
+    "BAG": [
+      "Accessory often used to carry items in day-to-day life."
+    ],
+    "INN": [
+      "A place for weary travelers to rest, often found along common routes."
+    ],
+    "VIA": [
+      "This Latin word meaning \"by way of\" is commonly used in addresses."
+    ],
+    "OAR": [
+      "Row, row, row your boat with this common watercraft tool."
+    ],
+    "ROW": [
+      "Where you might find a disagreement in a seating arrangement."
+    ],
+    "WAY": [
+      "Path or route to get from one place to another."
+    ],
+    "LEG": [
+      "One of the body parts used for walking, running, and standing."
+    ]
+  },
+  "clues_across": [
+    "This navigational tool helps you find your way around a city or town."
+  ],
+  "clues_down": [
+    "Accessory often used to carry items in day-to-day life."
+    "TECH": [
+      "Many people use this crossword to search for answers to common tech problems."
+    ],
+    "CODE": [
+      "This is often used to unlock phones and keep information secure."
+    ],
+    "DATA": [
+      "Information stored in a spreadsheet or database."
+    ],
+    "BYTE": [
+      "Unit of digital information representing a common unit of measurement for computer storage."
+    ],
+    "BIT": [
+      "A small piece of information in computing lingo."
+    ],
+    "CYBER": [
+      "Online space where many people communicate and share information."
+    ],
+    "CLOUD": [
+      "Where data is often stored and accessed remotely."
+    ],
+    "WIRED": [
+      "Connected to the internet, like many modern devices."
+    ],
+    "CHIP": [
+      "Snack item often made from potatoes and commonly enjoyed with sandwiches."
+    ],
+    "DISK": [
+      "Portable storage device commonly used to store files and data."
+    ],
+    "MODEM": [
+      "Essential device for connecting to the internet, often provided by your internet service provider."
+    ],
+    "ROBOT": [
+      "Automated machine that can perform tasks without human intervention."
+    ],
+    "LASER": [
+      "Medical professionals often use a ________ machine to perform precise surgeries."
+    ],
+    "PIXEL": [
+      "Tiny unit of color in a digital image."
+    ],
+    "CACHE": [
+      "Hidden storage often used by geocachers to hide treasures."
+    ],
+    "DEBUG": [
+      "Fixing errors in computer code is known as this process."
+    ]
+  },
+  "clues_across": [
+    "A small piece of information in computing lingo.",
+    "Essential device for connecting to the internet, often provided by your internet service provider."
+  ],
+  "clues_down": [
+    "Fixing errors in computer code is known as this process."
+  ]
+}
