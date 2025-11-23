@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 # fetch battle id
-@router.post("/{battle_id}")
+@router.get("/{battle_id}")
 async def get_battle(
     battle_id: str, current_user: dict | None = Depends(get_current_user_optional)
 ):
