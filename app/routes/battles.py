@@ -108,7 +108,86 @@ async def mark_ready(
 
 
 # battle start (initiating game to in progress and set started_at)
-# @router.post("/battles/{battle_id}/start")
+@router.post("/{battle_id}/start")
+async def start(battle_id: str, current_user: dict | None = Depends(get_current_user_optional)):
+    """ Start the battle game by setting its status to 'IN_PROGRESS' and recording the start time.
+        WHEN: both players click ready, frontend coutdown has completed"""
+    
+    try:
+        supabase = get_supabase()
+        # Fetch battle to check current status
+
+        battle_result = (supabase.table("battles")
+            .select("*")
+            .eq("id", battle_id)
+            .execute()
+        )
+
+        if not battle_result.data:
+            raise HTTPException(status_code=404, detail="Battle not found.")
+        
+        battle = battle_result.data[0]
+
+        #verify player is in battle
+        if current_user:
+            #logged-in user
+            user_id = current_user["user_id"]
+            is_player1 = battle["player1_id"] == user_id
+            is_player2 = battle["player2_id"] == user_id
+
+            if not (is_player1 or is_player2):
+                raise HTTPException(status_code=403, detail="You are not part of this battle.")
+        else:
+            #guest user
+            if not battle["player2_is_guest"]:
+                raise HTTPException(status_code=403, detail="Guest access denied for this battle.")
+            
+        #validate game state
+
+        player1_ready = battle.get("player1_ready", False)
+        player2_ready = battle.get("player2_ready", False)
+
+        if not (player1_ready and player2_ready):
+            raise HTTPException(status_code=400,
+                                detail="Both players must be ready before starting."
+                                    f"player1_ready: {player1_ready}, player2_ready: {player2_ready}"
+                                )
+        
+        #check game not already started
+        if battle["status"] == "IN_PROGRESS":
+            #someone already started the game, ok (idempotent
+            return{
+                "success": True,
+                "message": "Battle already in progress.",
+                "started_at": battle["started_at"],
+                "already_started": True
+            }
+        
+        #ensure game is ready to be started
+        if battle["status"] != "READY":
+            raise HTTPException(status_code=400, detail=f"Battle not in a startable state. Current status: {battle['status']}"
+                            )
+        
+        #update game to be in progress
+
+        started_at = datetime.now.isoformat()
+
+        supabase.tables("battles").update({
+            "status": "IN_PROGRESS",
+            "started_at": started_at
+        }).eq("id", battle_id).execute()
+
+        return {
+            "success": True,
+            "message": "Battle started",
+            "started_at": started_at,
+            "already_started": False
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("Error starting battle:", e)
+        raise HTTPException(status_code=500, detail=f"Failed to start battle: {str(e)}")
 # battle complete game (status from in progress to completed and set completed_at, who won, what their time was)
 # @router.post("/battles/{battle_id}/complete")
 # battle winner(who won the battle and their time)
