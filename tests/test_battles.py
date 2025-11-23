@@ -323,15 +323,13 @@ def test_start_battle_success_both_players_ready(setup_battle):
     supabase = get_supabase()
 
     # Mark both players as ready first
-    supabase.table("battles").update({
-        "player1_ready": True,
-        "player2_ready": True
-    }).eq("id", setup["battle_id"]).execute()
+    supabase.table("battles").update({"player1_ready": True, "player2_ready": True}).eq(
+        "id", setup["battle_id"]
+    ).execute()
 
     # Player 1 starts the battle
     response = client.post(
-        f"/api/battles/{setup['battle_id']}/start",
-        headers=setup["player1"]["headers"]
+        f"/api/battles/{setup['battle_id']}/start", headers=setup["player1"]["headers"]
     )
 
     assert response.status_code == 200
@@ -356,15 +354,13 @@ def test_start_battle_player2_can_start(setup_battle):
     supabase = get_supabase()
 
     # Mark both players as ready
-    supabase.table("battles").update({
-        "player1_ready": True,
-        "player2_ready": True
-    }).eq("id", setup["battle_id"]).execute()
+    supabase.table("battles").update({"player1_ready": True, "player2_ready": True}).eq(
+        "id", setup["battle_id"]
+    ).execute()
 
     # Player 2 starts the battle
     response = client.post(
-        f"/api/battles/{setup['battle_id']}/start",
-        headers=setup["player2"]["headers"]
+        f"/api/battles/{setup['battle_id']}/start", headers=setup["player2"]["headers"]
     )
 
     assert response.status_code == 200
@@ -379,15 +375,12 @@ def test_start_battle_guest_can_start(setup_guest_battle):
     supabase = get_supabase()
 
     # Mark both players as ready
-    supabase.table("battles").update({
-        "player1_ready": True,
-        "player2_ready": True
-    }).eq("id", setup["battle_id"]).execute()
+    supabase.table("battles").update({"player1_ready": True, "player2_ready": True}).eq(
+        "id", setup["battle_id"]
+    ).execute()
 
     # Guest starts the battle (no auth header)
-    response = client.post(
-        f"/api/battles/{setup['battle_id']}/start"
-    )
+    response = client.post(f"/api/battles/{setup['battle_id']}/start")
 
     assert response.status_code == 200
     json_response = response.json()
@@ -400,8 +393,7 @@ def test_start_battle_fails_when_neither_ready(setup_battle):
 
     # Try to start without marking ready
     response = client.post(
-        f"/api/battles/{setup['battle_id']}/start",
-        headers=setup["player1"]["headers"]
+        f"/api/battles/{setup['battle_id']}/start", headers=setup["player1"]["headers"]
     )
 
     assert response.status_code == 400
@@ -414,14 +406,12 @@ def test_start_battle_fails_when_only_player1_ready(setup_battle):
     supabase = get_supabase()
 
     # Only player 1 ready
-    supabase.table("battles").update({
-        "player1_ready": True,
-        "player2_ready": False
-    }).eq("id", setup["battle_id"]).execute()
+    supabase.table("battles").update(
+        {"player1_ready": True, "player2_ready": False}
+    ).eq("id", setup["battle_id"]).execute()
 
     response = client.post(
-        f"/api/battles/{setup['battle_id']}/start",
-        headers=setup["player1"]["headers"]
+        f"/api/battles/{setup['battle_id']}/start", headers=setup["player1"]["headers"]
     )
 
     assert response.status_code == 400
@@ -434,14 +424,12 @@ def test_start_battle_fails_when_only_player2_ready(setup_battle):
     supabase = get_supabase()
 
     # Only player 2 ready
-    supabase.table("battles").update({
-        "player1_ready": False,
-        "player2_ready": True
-    }).eq("id", setup["battle_id"]).execute()
+    supabase.table("battles").update(
+        {"player1_ready": False, "player2_ready": True}
+    ).eq("id", setup["battle_id"]).execute()
 
     response = client.post(
-        f"/api/battles/{setup['battle_id']}/start",
-        headers=setup["player2"]["headers"]
+        f"/api/battles/{setup['battle_id']}/start", headers=setup["player2"]["headers"]
     )
 
     assert response.status_code == 400
@@ -454,10 +442,9 @@ def test_start_battle_non_player_cannot_start(setup_battle):
     supabase = get_supabase()
 
     # Mark both players ready
-    supabase.table("battles").update({
-        "player1_ready": True,
-        "player2_ready": True
-    }).eq("id", setup["battle_id"]).execute()
+    supabase.table("battles").update({"player1_ready": True, "player2_ready": True}).eq(
+        "id", setup["battle_id"]
+    ).execute()
 
     # Create an intruder
     intruder_token = "intruder_token"
@@ -467,7 +454,7 @@ def test_start_battle_non_player_cannot_start(setup_battle):
     # Intruder tries to start
     response = client.post(
         f"/api/battles/{setup['battle_id']}/start",
-        headers={"Authorization": f"Bearer {intruder_token}"}
+        headers={"Authorization": f"Bearer {intruder_token}"},
     )
 
     assert response.status_code == 403
@@ -479,8 +466,7 @@ def test_start_battle_invalid_battle_id(setup_battle):
     setup = setup_battle
 
     response = client.post(
-        "/api/battles/fake_battle_id_999/start",
-        headers=setup["player1"]["headers"]
+        "/api/battles/fake_battle_id_999/start", headers=setup["player1"]["headers"]
     )
 
     assert response.status_code == 404
@@ -494,17 +480,18 @@ def test_start_battle_idempotent_already_in_progress(setup_battle):
 
     # Set up battle as already started
     test_started_at = "2024-01-01T12:00:00Z"
-    supabase.table("battles").update({
-        "player1_ready": True,
-        "player2_ready": True,
-        "status": "IN_PROGRESS",
-        "started_at": test_started_at
-    }).eq("id", setup["battle_id"]).execute()
+    supabase.table("battles").update(
+        {
+            "player1_ready": True,
+            "player2_ready": True,
+            "status": "IN_PROGRESS",
+            "started_at": test_started_at,
+        }
+    ).eq("id", setup["battle_id"]).execute()
 
     # Try to start again
     response = client.post(
-        f"/api/battles/{setup['battle_id']}/start",
-        headers=setup["player1"]["headers"]
+        f"/api/battles/{setup['battle_id']}/start", headers=setup["player1"]["headers"]
     )
 
     assert response.status_code == 200
@@ -520,15 +507,12 @@ def test_start_battle_fails_from_waiting_status(setup_battle):
     supabase = get_supabase()
 
     # Change to WAITING status (but mark both ready)
-    supabase.table("battles").update({
-        "player1_ready": True,
-        "player2_ready": True,
-        "status": "WAITING"
-    }).eq("id", setup["battle_id"]).execute()
+    supabase.table("battles").update(
+        {"player1_ready": True, "player2_ready": True, "status": "WAITING"}
+    ).eq("id", setup["battle_id"]).execute()
 
     response = client.post(
-        f"/api/battles/{setup['battle_id']}/start",
-        headers=setup["player1"]["headers"]
+        f"/api/battles/{setup['battle_id']}/start", headers=setup["player1"]["headers"]
     )
 
     assert response.status_code == 400
@@ -541,15 +525,12 @@ def test_start_battle_fails_from_completed_status(setup_battle):
     supabase = get_supabase()
 
     # Change to COMPLETED status
-    supabase.table("battles").update({
-        "player1_ready": True,
-        "player2_ready": True,
-        "status": "COMPLETED"
-    }).eq("id", setup["battle_id"]).execute()
+    supabase.table("battles").update(
+        {"player1_ready": True, "player2_ready": True, "status": "COMPLETED"}
+    ).eq("id", setup["battle_id"]).execute()
 
     response = client.post(
-        f"/api/battles/{setup['battle_id']}/start",
-        headers=setup["player1"]["headers"]
+        f"/api/battles/{setup['battle_id']}/start", headers=setup["player1"]["headers"]
     )
 
     assert response.status_code == 400
@@ -562,15 +543,12 @@ def test_start_battle_guest_denied_for_non_guest_battle(setup_battle):
     supabase = get_supabase()
 
     # Mark both ready
-    supabase.table("battles").update({
-        "player1_ready": True,
-        "player2_ready": True
-    }).eq("id", setup["battle_id"]).execute()
+    supabase.table("battles").update({"player1_ready": True, "player2_ready": True}).eq(
+        "id", setup["battle_id"]
+    ).execute()
 
     # Guest tries to start (no auth header)
-    response = client.post(
-        f"/api/battles/{setup['battle_id']}/start"
-    )
+    response = client.post(f"/api/battles/{setup['battle_id']}/start")
 
     assert response.status_code == 403
     assert "guest access denied" in response.json()["detail"].lower()
