@@ -170,9 +170,9 @@ async def start(battle_id: str, current_user: dict | None = Depends(get_current_
         
         #update game to be in progress
 
-        started_at = datetime.now.isoformat()
+        started_at = datetime.now().isoformat()
 
-        supabase.tables("battles").update({
+        supabase.table("battles").update({
             "status": "IN_PROGRESS",
             "started_at": started_at
         }).eq("id", battle_id).execute()
