@@ -28,12 +28,15 @@ def create_user_stats(user: dict, current_user: dict = Depends(get_current_user)
                     "user_id": user_id,
                     "display_name": display_name,
                     "num_solo_games": 0,
-                    "num_competition_games": 0,
+                    "num_battle_games": 0,
                     "fastest_solo_time": 0,
-                    "fastest_competition_time": 0,
-                    "num_wins": 0,
-                    "dt_last_seen": None,
-                    "streak_count": 0,
+                    "fastest_battle_time": 0,
+                    "num_complete_solo": 0,
+                    "num_wins_battle": 0,
+                    "dt_last_seen_solo": None,
+                    "dt_last_seen_battle": None,
+                    "streak_count_solo": 0,
+                    "streak_count_battle": 0,
                 }
             )
             .execute()
