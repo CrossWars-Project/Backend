@@ -19,6 +19,19 @@ def _make_auth_user_for_mock(mock_id: str, display_name: str = "Test User"):
     }
 
 
+@pytest.fixture(autouse=True)
+def clear_overrides():
+    """
+    Ensure dependency overrides are cleared before and after each test to avoid
+    leaking mocked auth between tests.
+    """
+    from app.main import app
+
+    app.dependency_overrides.clear()
+    yield
+    app.dependency_overrides.clear()
+
+
 def test_create_user_stats_creates_entry_and_gets_saved():
     from app.main import app
     from app.auth import get_current_user
@@ -54,9 +67,6 @@ def test_create_user_stats_creates_entry_and_gets_saved():
     assert data3["exists"] is True
     assert data3["data"][0]["display_name"] == MOCK_USER["display_name"]
 
-    # Clear overrides after test
-    app.dependency_overrides.clear()
-
 
 def test_update_user_stats_user_not_found_for_authenticated_user():
     from app.main import app
@@ -70,11 +80,9 @@ def test_update_user_stats_user_not_found_for_authenticated_user():
 
     client = TestClient(app)
 
-    res = client.put("/stats/update_user_stats", json={"num_wins": 1})
+    res = client.put("/stats/update_user_stats", json={"num_wins_battle": 1})
     assert res.status_code == 404
     assert "User not found" in res.json()["detail"]
-
-    app.dependency_overrides.clear()
 
 
 def test_update_user_stats_successful_updates_and_times_logic():
@@ -94,13 +102,13 @@ def test_update_user_stats_successful_updates_and_times_logic():
     assert res_create.status_code == 200
     assert res_create.json()["success"] is True
 
-    # Increment counts and set a fastest time
+    # Increment counts and set a fastest solo time
     res5 = client.put(
         "/stats/update_user_stats",
         json={
-            "num_wins": 2,
+            "num_wins_battle": 2,
             "num_solo_games": 1,
-            "num_competition_games": 3,
+            "num_battle_games": 3,
             "fastest_solo_time": 70,
         },
     )
@@ -108,10 +116,11 @@ def test_update_user_stats_successful_updates_and_times_logic():
     data5 = res5.json()
     assert data5["success"] is True
     updated_data = data5["updated_data"][0]
-    assert updated_data["num_wins"] >= 2
-    assert updated_data["num_solo_games"] >= 1
-    assert updated_data["num_competition_games"] >= 3
-    assert updated_data["fastest_solo_time"] == 70
+    assert updated_data.get("num_wins_battle", 0) >= 2
+    assert updated_data.get("num_solo_games", 0) >= 1
+    assert updated_data.get("num_battle_games", 0) >= 3
+    # If backend wrote the fastest time, it should equal 70
+    assert updated_data.get("fastest_solo_time") == 70
 
     # Updating with a worse fastest time should not change it
     res6 = client.put(
@@ -122,7 +131,8 @@ def test_update_user_stats_successful_updates_and_times_logic():
     )
     assert res6.status_code == 200
     data6 = res6.json()
-    assert data6["success"] is False or "No better stats" in data6.get("message", "")
+    # backend returns success False + message when nothing better to update
+    assert data6.get("success") is False or "No better stats" in data6.get("message", "")
 
     # A better (smaller) fastest time should update
     res7 = client.put(
@@ -135,22 +145,20 @@ def test_update_user_stats_successful_updates_and_times_logic():
     updated_time = data7["updated_data"][0].get("fastest_solo_time")
     assert updated_time == 5.0
 
-    # Test streak logic
+    # Test solo streak logic using dt_last_seen_solo
     yesterday = (datetime.now() - timedelta(days=1)).isoformat()
     today = datetime.now().isoformat()
 
-    res9 = client.put("/stats/update_user_stats", json={"dt_last_seen": yesterday})
+    res9 = client.put("/stats/update_user_stats", json={"dt_last_seen_solo": yesterday})
     assert res9.status_code == 200
     assert res9.json()["success"] is True
 
-    res10 = client.put("/stats/update_user_stats", json={"dt_last_seen": today})
+    res10 = client.put("/stats/update_user_stats", json={"dt_last_seen_solo": today})
     assert res10.status_code == 200
     data10 = res10.json()
     assert data10["success"] is True
-    updated_streak = data10["updated_data"][0].get("streak_count")
-    assert updated_streak >= 1
-
-    app.dependency_overrides.clear()
+    updated_streak = data10["updated_data"][0].get("streak_count_solo")
+    assert updated_streak is not None and updated_streak >= 1
 
 
 def test_unauthenticated_requests_are_rejected_with_401():
@@ -165,5 +173,5 @@ def test_unauthenticated_requests_are_rejected_with_401():
     assert res.status_code == 401
 
     # calling update endpoint without auth should return 401
-    res2 = client.put("/stats/update_user_stats", json={"num_wins": 1})
+    res2 = client.put("/stats/update_user_stats", json={"num_wins_battle": 1})
     assert res2.status_code == 401
