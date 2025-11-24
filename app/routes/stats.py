@@ -107,14 +107,16 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
                 old_dt = datetime.fromisoformat(old_dt_str)
                 # Compare calendar dates only
                 if (new_dt.date() - old_dt.date()) == timedelta(days=1):
-                    updated_fields["streak_count_solo"] = current.get("streak_count_solo", 0) + 1
+                    updated_fields["streak_count_solo"] = (
+                        current.get("streak_count_solo", 0) + 1
+                    )
                 elif (new_dt.date() - old_dt.date()) > timedelta(days=1):
                     updated_fields["streak_count_solo"] = 1
                 # same-day play → do not increment streak
             else:
                 updated_fields["streak_count_solo"] = 1
             updated_fields["dt_last_seen_solo"] = new_dt_solo
-        
+
         # ---------------- Handle dt_last_seen and streak logic (battle) ----------------
         new_dt_battle = user.get("dt_last_seen_battle")
         if new_dt_battle:
@@ -124,7 +126,9 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
                 old_dt = datetime.fromisoformat(old_dt_str)
                 # Compare calendar dates only
                 if (new_dt.date() - old_dt.date()) == timedelta(days=1):
-                    updated_fields["streak_count_battle"] = current.get("streak_count_battle", 0) + 1
+                    updated_fields["streak_count_battle"] = (
+                        current.get("streak_count_battle", 0) + 1
+                    )
                 elif (new_dt.date() - old_dt.date()) > timedelta(days=1):
                     updated_fields["streak_count_battle"] = 1
                 # same-day play → do not increment streak
@@ -151,7 +155,7 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
                 # treat 0 or missing as "no recorded time" -> accept any positive new_value
                 if (old_value == 0 or old_value is None) and (new_value > 0):
                     updated_fields[key] = new_value
-                #otherwise only update if new_value is better (lower)
+                # otherwise only update if new_value is better (lower)
                 elif new_value > 0 and old_value and new_value < old_value:
                     updated_fields[key] = new_value
 
@@ -160,7 +164,8 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
                 "num_complete_solo",
                 "num_solo_games",
                 "num_wins_battle",
-                "num_battle_games"):
+                "num_battle_games",
+            ):
                 increment = new_value  # frontend now sends how much to increment by
                 updated_fields[key] = (old_value or 0) + increment
 

@@ -132,7 +132,9 @@ def test_update_user_stats_successful_updates_and_times_logic():
     assert res6.status_code == 200
     data6 = res6.json()
     # backend returns success False + message when nothing better to update
-    assert data6.get("success") is False or "No better stats" in data6.get("message", "")
+    assert data6.get("success") is False or "No better stats" in data6.get(
+        "message", ""
+    )
 
     # A better (smaller) fastest time should update
     res7 = client.put(
