@@ -1,0 +1,219 @@
+# Testing Daily Crosswords
+
+This guide explains how to test the daily crossword functionality during development.
+
+## Problem
+
+The production app generates crosswords once per day at midnight via GitHub Actions. During development, you need to test with multiple crosswords without waiting 24 hours.
+
+## Solution: Testing Endpoints
+
+I've added special testing endpoints that allow you to generate fresh crosswords on demand.
+
+---
+
+## Testing Endpoints
+
+### 1. Generate New Crossword(s)
+
+**Endpoint:** `POST /crossword/test/generate-new`
+
+**Purpose:** Generate a fresh crossword to test with
+
+#### Examples:
+
+**Generate both solo AND battle crosswords:**
+```bash
+curl -X POST http://127.0.0.1:8000/crossword/test/generate-new \
+  -H "Content-Type: application/json"
+```
+
+**Generate only solo crossword:**
+```bash
+curl -X POST http://127.0.0.1:8000/crossword/test/generate-new \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "solo"}'
+```
+
+**Generate only battle crossword:**
+```bash
+curl -X POST http://127.0.0.1:8000/crossword/test/generate-new \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "battle"}'
+```
+
+**Generate with custom theme:**
+```bash
+curl -X POST http://127.0.0.1:8000/crossword/test/generate-new \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "solo", "theme": "ocean"}'
+```
+
+#### Response:
+```json
+{
+  "success": true,
+  "message": "Test crossword(s) generated successfully",
+  "results": {
+    "solo": {
+      "theme": "nature",
+      "status": "generated",
+      "file": "solo_play.json"
+    },
+    "battle": {
+      "theme": "technology",
+      "status": "generated",
+      "file": "battle_play.json"
+    }
+  },
+  "note": "This endpoint is for testing only. Production uses scheduled generation.",
+  "timestamp": "2025-11-23T15:30:00.123456"
+}
+```
+
+---
+
+### 2. Clear All Crosswords
+
+**Endpoint:** `DELETE /crossword/test/clear-all`
+
+**Purpose:** Delete all crossword files to test the "no crossword available" error state
+
+#### Example:
+```bash
+curl -X DELETE http://127.0.0.1:8000/crossword/test/clear-all
+```
+
+#### Response:
+```json
+{
+  "success": true,
+  "message": "Deleted 3 file(s)",
+  "deleted_files": [
+    "latest_crossword.json",
+    "solo_play.json",
+    "battle_play.json"
+  ]
+}
+```
+
+---
+
+## Testing Workflows
+
+### Test Solo Play Mode:
+
+1. **Start backend:**
+```bash
+   cd backend
+   uvicorn app.main:app --reload
+```
+
+2. **Generate fresh solo crossword:**
+```bash
+   curl -X POST http://127.0.0.1:8000/crossword/test/generate-new \
+     -H "Content-Type: application/json" \
+     -d '{"mode": "solo"}'
+```
+
+3. **Start frontend and play:**
+```bash
+   cd frontend
+   npm run dev
+```
+   Click "Solo Play" - you'll get the fresh crossword!
+
+4. **Want another crossword? Repeat step 2**
+
+---
+
+### Test Battle Play Mode:
+
+Same as above, but use `"mode": "battle"` and click "Battle Play" in the frontend.
+
+---
+
+### Test "No Crossword Available" Error:
+
+1. **Clear all crosswords:**
+```bash
+   curl -X DELETE http://127.0.0.1:8000/crossword/test/clear-all
+```
+
+2. **Try to play:**
+   - Frontend should show: "No crossword available. Wait for daily generation."
+
+3. **Fix by generating new ones:**
+```bash
+   curl -X POST http://127.0.0.1:8000/crossword/test/generate-new
+```
+
+---
+
+## Important Notes
+
+⚠️ **These endpoints are for TESTING ONLY**
+- They should NOT be used in production
+- They are not called by GitHub Actions
+- They do NOT affect the scheduled daily generation
+
+✅ **Production Behavior:**
+- GitHub Actions generates crosswords at midnight daily
+- Users cannot trigger generation manually
+- Testing endpoints are ignored in production
+
+🔒 **Security Note:**
+- In production, you may want to add authentication to these test endpoints
+- Or remove them entirely before deploying
+
+---
+
+## Troubleshooting
+
+**Problem:** "No crossword available"
+- **Solution:** Run `POST /crossword/test/generate-new` to create one
+
+**Problem:** Crossword generation takes 20-30 seconds
+- **Solution:** This is normal - OpenAI API + clue generation takes time
+
+**Problem:** "Failed to generate crossword"
+- **Solution:** Check your OpenAI API key in `.env` file
+- Make sure you have credits in your OpenAI account
+
+**Problem:** Clues don't match the grid
+- **Solution:** This was fixed - make sure you have the latest `SoloPlay.jsx`
+
+---
+
+## Quick Commands Cheat Sheet
+```bash
+# Generate both crosswords with random themes
+curl -X POST http://127.0.0.1:8000/crossword/test/generate-new
+
+# Generate solo only
+curl -X POST http://127.0.0.1:8000/crossword/test/generate-new \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "solo"}'
+
+# Generate with custom theme
+curl -X POST http://127.0.0.1:8000/crossword/test/generate-new \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "solo", "theme": "space"}'
+
+# Clear all crosswords
+curl -X DELETE http://127.0.0.1:8000/crossword/test/clear-all
+
+# Check if crosswords exist
+ls backend/app/*.json
+```
+
+---
+
+## Questions?
+
+If you have issues with testing, check:
+1. Is the backend running? (`uvicorn app.main:app --reload`)
+2. Do you have a valid OpenAI API key in `.env`?
+3. Are you in the correct directory when running curl commands?
+4. Did you wait 20-30 seconds for generation to complete?
+5. If anything else, just send a message to me, Kiann!

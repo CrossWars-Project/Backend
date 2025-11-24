@@ -1,19 +1,15 @@
-# backend/api.py
+# backend/app/generator.py
 """
-Flask API endpoint that:
- - Accepts POST /api/generate with JSON { "theme": "ocean" }
- - Runs the OpenAI -> pycrossword pipeline (words -> clues -> crossword)
- - Writes a JSON file backend/latest_crossword.json with the full output
- - Returns the same JSON response to the caller
-This file is additive — it does not change existing scripts.
+Crossword generator that:
+ - Uses OpenAI API to generate themed words
+ - Uses pycrossword to arrange words into a 5x5 grid
+ - Generates clues for each word
+ - Writes output to latest_crossword.json
 
 Requires:
-- flask
-- Python 3.12+ (use .venv313)
-- OPENAI package (pip install openai)
+- Python 3.12+
+- openai package (pip install openai)
 - pycrossword package (pip install pycrossword)
- -For setup and operation, read generator_README.md file.
- - ALWAYS USE INSIDE VENV313!!
 """
 
 import os
@@ -30,6 +26,7 @@ load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("OPENAI_API_KEY not found in environment variables.")
+print("OPENAI_API_KEY repr:", repr(api_key))
 
 # ------------------ Put your OpenAI API key here ------------------
 OPENAI_API_KEY = api_key
@@ -53,6 +50,28 @@ def render_crossword(placed_words: list, dimensions: list):
         else:
             for i in range(len(items[0])):
                 grid[items[1] + i][items[2]] = items[0][i]
+    return grid
+
+
+# Pad grid to 5x5
+def pad_grid_to_5x5(grid: list) -> list:
+    """
+    Pad a grid to be exactly 5x5 by adding rows/columns of dashes.
+    """
+    TARGET_SIZE = 5
+    current_rows = len(grid)
+    current_cols = len(grid[0]) if grid else 0
+
+    # Pad columns (add dashes to the right of each row)
+    if current_cols < TARGET_SIZE:
+        for row in grid:
+            row.extend(["-"] * (TARGET_SIZE - current_cols))
+
+    # Pad rows (add new rows at the bottom)
+    if current_rows < TARGET_SIZE:
+        for _ in range(TARGET_SIZE - current_rows):
+            grid.append(["-"] * TARGET_SIZE)
+
     return grid
 
 
@@ -93,14 +112,14 @@ def parse_words_from_model(text: str) -> List[str]:
     words = []
     for t in tokens:
         t = re.sub(r"[^A-Za-z]", "", t).strip().upper()
-        if 1 <= len(t) <= 5:
+        if 3 <= len(t) <= 5:
             words.append(t)
     return words
 
 
 # Ask OpenAI Responses API for words given a theme
 def ask_openai_for_words(
-    theme: str, max_words: int = 16, max_output_tokens: int = 1000
+    theme: str, max_words: int = 30, max_output_tokens: int = 5000
 ) -> List[str]:
     if not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-REPLACE"):
         raise RuntimeError(
@@ -109,11 +128,17 @@ def ask_openai_for_words(
     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
     client = OpenAI()
 
+    # UPDATED PROMPT: Request 25+ words with variety in length
     prompt = (
-        f'Return a JSON array (e.g. ["OCEAN","WAVE",...]) of up to {max_words} single-word terms '
-        f'related to the theme "{theme}". ALL words must be alphabetic and 3 to 5 letters long. '
-        "Return only the JSON array — do not add any commentary, explanations, steps, or extra text. "
-        "Do not include numbers or other tokens."
+        f'Return a JSON array of at least 30 single-word terms related to the theme "{theme}". '
+        "IMPORTANT RULES:\n"
+        "- Words must be 3, 4, or 5 letters long\n"
+        "- Prioritize mostly 3-letter words (about 60%)\n"
+        "- Include some 4-letter words (about 30%)\n"
+        "- Include a few 5-letter words (about 10%)\n"
+        "- Prefer words with common letters like A, E, I, O, R, S, T, N\n"
+        "- Use simple, common words that work well in crosswords\n"
+        '- Return ONLY the JSON array (e.g. ["DOG","TREE","OCEAN",...]) with no commentary or explanations'
     )
 
     resp = client.responses.create(
@@ -135,12 +160,12 @@ def ask_openai_for_words(
 
     words = parse_words_from_model(output_text)
 
-    # enforce <=5 and uniqueness
+    # UPDATED: enforce 3-5 letters and uniqueness
     seen = set()
     filtered = []
     for w in words:
         w2 = w.strip().upper()
-        if 1 <= len(w2) <= 5 and w2.isalpha() and w2 not in seen:
+        if 3 <= len(w2) <= 5 and w2.isalpha() and w2 not in seen:
             filtered.append(w2)
             seen.add(w2)
     return filtered[:max_words]
@@ -158,23 +183,31 @@ def generate_clues(words: List[str]) -> dict:
 
 # Build final JSON response, write to latest_crossword.json
 def build_and_save(theme: str):
-    # 1) get words
-    words = ask_openai_for_words(theme, max_words=16, max_output_tokens=1500)
+    # 1) get words - request 30 words for more variety
+    words = ask_openai_for_words(theme, max_words=30, max_output_tokens=5000)
     if not words:
         raise RuntimeError("OpenAI did not return usable words. Try a different theme.")
+
+    print(f"Generated {len(words)} words: {words}")
 
     # 2) generate clues (if clue generation fails continue without clues but log)
     try:
         clues = generate_clues(words)
     except Exception as e:
-        # If clues fail, set clues=None but continue to generate crossword (per your earlier desire)
+        print(f"Clue generation failed: {e}")
         clues = None
 
     # 3) generate crossword (pycrossword documented usage)
     dimensions, placed_words = generate_crossword(words.copy(), x=5, y=5)
 
+    print(f"Placed {len(placed_words)} words in crossword")
+
     # 4) render grid CLI-style
     grid = render_crossword(placed_words, dimensions)
+
+    # Pad grid to ensure it's always 5x5
+    grid = pad_grid_to_5x5(grid)
+    dimensions = (5, 5)  # Update dimensions to reflect padded size
 
     # 5) organize clues by across/down
     if clues:
