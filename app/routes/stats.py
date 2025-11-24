@@ -1,27 +1,31 @@
 # Handle get and posts to the user stats table
 from fastapi import APIRouter, HTTPException
+from fastapi.params import Depends
 from app.db import get_supabase
+from app.auth import get_current_user
 
 router = APIRouter()
 
 
+from fastapi import Depends
+
 @router.post("/create_user_stats")
-def create_user_stats(user: dict):
+def create_user_stats(user: dict, current_user: dict = Depends(get_current_user)):
     """
-    Expects a dict with keys:
-      - 'id': user ID from auth
-      - 'display_name': string
-    Inserts default stats row for new user.
+    Creates a default stats row for the authenticated user.
+    Body may include 'display_name' to override username.
     """
     supabase = get_supabase()
     try:
-        # Attempt to insert new stats record
+        user_id = current_user["user_id"]
+        display_name = user.get("display_name") or current_user.get("username") or ""
+
         response = (
             supabase.table("Stats")
             .insert(
                 {
-                    "user_id": user["id"],
-                    "display_name": user["display_name"],
+                    "user_id": user_id,
+                    "display_name": display_name,
                     "num_solo_games": 0,
                     "num_competition_games": 0,
                     "fastest_solo_time": 0,
@@ -34,12 +38,13 @@ def create_user_stats(user: dict):
             .execute()
         )
 
-        # ✅ Modern client: use response.data, no .error attribute
         if not response.data:
             raise HTTPException(status_code=400, detail="Failed to insert user stats")
 
         return {"success": True, "data": response.data}
 
+    except HTTPException:
+        raise
     except Exception as e:
         print("Error inserting user stats:", e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -62,18 +67,21 @@ from datetime import datetime, timedelta
 
 
 @router.put("/update_user_stats")
-def update_user_stats(user: dict):
+def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)):
     """
-    Expects JSON body with:
-      - 'user_id': str (required)
-      - fields to update (e.g., 'num_wins', 'streak_count', etc.)
-    Only updates fields if new values are 'better' than existing ones.
+    Updates stats for an (authenticated) user.
+    The request body may contain fields to increment or new times:
+      - fields like 'num_wins', 'num_solo_games', 'num_competition_games' are treated as increments
+      - 'fastest_solo_time' and 'fastest_competition_time' treat lower as better
+      - 'dt_last_seen' (ISO string) is used for streak logic
+    The user_id used is the authenticated user's id (current_user['user_id']).
     """
     supabase = get_supabase()
-    user_id = user.get("user_id")
+    user_id = current_user.get("user_id")
 
     if not user_id:
-        raise HTTPException(status_code=400, detail="Missing required field: user_id")
+        #should not happen for an authenticated request, but guard anyway.
+        raise HTTPException(status_code=400, detail="Missing authenticated user_id")
 
     try:
         # Get existing stats
