@@ -9,6 +9,7 @@ router = APIRouter()
 
 from fastapi import Depends
 
+
 @router.post("/create_user_stats")
 def create_user_stats(user: dict, current_user: dict = Depends(get_current_user)):
     """
@@ -63,6 +64,8 @@ def get_user_stats(user_id: str):
     except Exception as e:
         print("Error fetching user stats:", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
 from datetime import datetime, timedelta
 
 
@@ -80,7 +83,7 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
     user_id = current_user.get("user_id")
 
     if not user_id:
-        #should not happen for an authenticated request, but guard anyway.
+        # should not happen for an authenticated request, but guard anyway.
         raise HTTPException(status_code=400, detail="Missing authenticated user_id")
 
     try:

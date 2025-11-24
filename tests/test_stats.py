@@ -12,7 +12,11 @@ def _make_auth_user_for_mock(mock_id: str, display_name: str = "Test User"):
     return the shape of current_user returned by app.auth.get_current_user
     (adjust fields as needed by your auth implementation)
     """
-    return {"user_id": mock_id, "username": display_name, "email": f"{mock_id[:8]}@example.com"}
+    return {
+        "user_id": mock_id,
+        "username": display_name,
+        "email": f"{mock_id[:8]}@example.com",
+    }
 
 
 def test_create_user_stats_creates_entry_and_gets_saved():
