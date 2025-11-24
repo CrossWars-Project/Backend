@@ -60,45 +60,57 @@ def generate_daily_crosswords():
     """
     try:
         from app import generator
-        
+
         # Determine themes for today
         day_of_year = datetime.now().timetuple().tm_yday
         themes = [
-            "technology", "nature", "science", "sports", "music",
-            "food", "travel", "history", "art", "space",
-            "ocean", "animals", "weather", "books", "movies"
+            "technology",
+            "nature",
+            "science",
+            "sports",
+            "music",
+            "food",
+            "travel",
+            "history",
+            "art",
+            "space",
+            "ocean",
+            "animals",
+            "weather",
+            "books",
+            "movies",
         ]
-        
+
         solo_theme = themes[day_of_year % len(themes)]
         battle_theme = themes[(day_of_year + 1) % len(themes)]
-        
+
         results = {}
         app_dir = Path(__file__).parent.parent
         latest_path = app_dir / "latest_crossword.json"
         solo_path = app_dir / "solo_play.json"
         battle_path = app_dir / "battle_play.json"
-        
+
         # Generate solo crossword
         print(f"Generating solo crossword with theme: {solo_theme}")
         generator.build_and_save(solo_theme)
         shutil.copy2(latest_path, solo_path)
-        results['solo'] = {'theme': solo_theme, 'status': 'generated'}
-        
+        results["solo"] = {"theme": solo_theme, "status": "generated"}
+
         time.sleep(3)
-        
+
         # Generate battle crossword
         print(f"Generating battle crossword with theme: {battle_theme}")
         generator.build_and_save(battle_theme)
         shutil.copy2(latest_path, battle_path)
-        results['battle'] = {'theme': battle_theme, 'status': 'generated'}
-        
+        results["battle"] = {"theme": battle_theme, "status": "generated"}
+
         return {
             "success": True,
             "message": "Daily crosswords generated successfully",
             "results": results,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
-        
+
     except Exception as e:
         print(f"Error in generate_daily_crosswords: {e}")
         traceback.print_exc()
@@ -115,7 +127,8 @@ def get_solo_crossword():
 
     if not file_path.exists():
         raise HTTPException(
-            status_code=404, detail="No solo crossword available. Wait for daily generation."
+            status_code=404,
+            detail="No solo crossword available. Wait for daily generation.",
         )
 
     try:
@@ -138,7 +151,8 @@ def get_battle_crossword():
 
     if not file_path.exists():
         raise HTTPException(
-            status_code=404, detail="No battle crossword available. Wait for daily generation."
+            status_code=404,
+            detail="No battle crossword available. Wait for daily generation.",
         )
 
     try:
@@ -177,10 +191,10 @@ def test_generate_new_crossword(payload: Optional[dict] = None):
     """
     POST /crossword/test/generate-new
     Body (optional): { "mode": "solo" or "battle", "theme": "custom-theme" }
-    
+
     TESTING ONLY: Manually generates a new crossword and overwrites the current one.
     This allows developers to test with fresh crosswords without waiting for midnight.
-    
+
     Examples:
     - POST /crossword/test/generate-new  (generates both with random themes)
     - POST /crossword/test/generate-new {"mode": "solo"}  (only solo)
@@ -189,57 +203,69 @@ def test_generate_new_crossword(payload: Optional[dict] = None):
     payload = payload or {}
     mode = payload.get("mode", "both")  # "solo", "battle", or "both"
     custom_theme = payload.get("theme")
-    
+
     themes = [
-        "technology", "nature", "science", "sports", "music",
-        "food", "travel", "history", "art", "space",
-        "ocean", "animals", "weather", "books", "movies"
+        "technology",
+        "nature",
+        "science",
+        "sports",
+        "music",
+        "food",
+        "travel",
+        "history",
+        "art",
+        "space",
+        "ocean",
+        "animals",
+        "weather",
+        "books",
+        "movies",
     ]
-    
+
     try:
         from app import generator
-        
+
         app_dir = Path(__file__).parent.parent
         latest_path = app_dir / "latest_crossword.json"
         results = {}
-        
+
         # Generate Solo
         if mode in ["solo", "both"]:
             solo_theme = custom_theme or random.choice(themes)
             print(f"TEST: Generating solo crossword with theme: {solo_theme}")
             generator.build_and_save(solo_theme)
-            
+
             solo_path = app_dir / "solo_play.json"
             shutil.copy2(latest_path, solo_path)
-            results['solo'] = {
-                'theme': solo_theme,
-                'status': 'generated',
-                'file': 'solo_play.json'
+            results["solo"] = {
+                "theme": solo_theme,
+                "status": "generated",
+                "file": "solo_play.json",
             }
             time.sleep(2)
-        
+
         # Generate Battle
         if mode in ["battle", "both"]:
             battle_theme = custom_theme or random.choice(themes)
             print(f"TEST: Generating battle crossword with theme: {battle_theme}")
             generator.build_and_save(battle_theme)
-            
+
             battle_path = app_dir / "battle_play.json"
             shutil.copy2(latest_path, battle_path)
-            results['battle'] = {
-                'theme': battle_theme,
-                'status': 'generated',
-                'file': 'battle_play.json'
+            results["battle"] = {
+                "theme": battle_theme,
+                "status": "generated",
+                "file": "battle_play.json",
             }
-        
+
         return {
             "success": True,
             "message": "Test crossword(s) generated successfully",
             "results": results,
             "note": "This endpoint is for testing only. Production uses scheduled generation.",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
-        
+
     except Exception as e:
         print(f"Error in test generation: {e}")
         traceback.print_exc()
@@ -250,7 +276,7 @@ def test_generate_new_crossword(payload: Optional[dict] = None):
 def test_clear_crosswords():
     """
     DELETE /crossword/test/clear-all
-    
+
     TESTING ONLY: Deletes all crossword JSON files.
     Useful for testing the "no crossword available" error state.
     """
@@ -259,20 +285,20 @@ def test_clear_crosswords():
         files_to_delete = [
             "latest_crossword.json",
             "solo_play.json",
-            "battle_play.json"
+            "battle_play.json",
         ]
-        
+
         deleted = []
         for filename in files_to_delete:
             file_path = app_dir / filename
             if file_path.exists():
                 os.remove(file_path)
                 deleted.append(filename)
-        
+
         return {
             "success": True,
             "message": f"Deleted {len(deleted)} file(s)",
-            "deleted_files": deleted
+            "deleted_files": deleted,
         }
     except Exception as e:
         print(f"Error clearing files: {e}")
