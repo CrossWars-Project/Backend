@@ -5,30 +5,27 @@ __pycache__/
 *.pyd
 *.pyc
 *.pkl
-
 # Virtual environment
 venv/
-
 # Environment variables
 .env
 .env.*
-
 # VS Code
 .vscode/
-
 # Build / dist files
 *.egg
 *.egg-info/
 dist/
 build/
 .eggs/
-
 # OS files
 .DS_Store
 Thumbs.db
-
 # Logs
 *.log
-
 # Local cache
 .cache/
+# Generated crossword JSON files
+latest_crossword.json
+solo_play.json
+battle_play.json
