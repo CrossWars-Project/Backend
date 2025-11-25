@@ -28,12 +28,15 @@ def create_user_stats(user: dict, current_user: dict = Depends(get_current_user)
                     "user_id": user_id,
                     "display_name": display_name,
                     "num_solo_games": 0,
-                    "num_competition_games": 0,
+                    "num_battle_games": 0,
                     "fastest_solo_time": 0,
-                    "fastest_competition_time": 0,
-                    "num_wins": 0,
-                    "dt_last_seen": None,
-                    "streak_count": 0,
+                    "fastest_battle_time": 0,
+                    "num_complete_solo": 0,
+                    "num_wins_battle": 0,
+                    "dt_last_seen_solo": None,
+                    "dt_last_seen_battle": None,
+                    "streak_count_solo": 0,
+                    "streak_count_battle": 0,
                 }
             )
             .execute()
@@ -95,35 +98,74 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
         current = response.data[0]
         updated_fields = {}
 
-        # ---------------- Handle dt_last_seen and streak logic ----------------
-        new_dt_str = user.get("dt_last_seen")
-        if new_dt_str:
-            new_dt = datetime.fromisoformat(new_dt_str)
-            old_dt_str = current.get("dt_last_seen")
+        # ---------------- Handle dt_last_seen and streak logic (solo) ----------------
+        new_dt_solo = user.get("dt_last_seen_solo")
+        if new_dt_solo:
+            new_dt = datetime.fromisoformat(new_dt_solo)
+            old_dt_str = current.get("dt_last_seen_solo")
             if old_dt_str:
                 old_dt = datetime.fromisoformat(old_dt_str)
                 # Compare calendar dates only
                 if (new_dt.date() - old_dt.date()) == timedelta(days=1):
-                    updated_fields["streak_count"] = current.get("streak_count", 0) + 1
+                    updated_fields["streak_count_solo"] = (
+                        current.get("streak_count_solo", 0) + 1
+                    )
                 elif (new_dt.date() - old_dt.date()) > timedelta(days=1):
-                    updated_fields["streak_count"] = 1
+                    updated_fields["streak_count_solo"] = 1
                 # same-day play → do not increment streak
             else:
-                updated_fields["streak_count"] = 1
-            updated_fields["dt_last_seen"] = new_dt_str
+                updated_fields["streak_count_solo"] = 1
+            updated_fields["dt_last_seen_solo"] = new_dt_solo
+
+        # ---------------- Handle dt_last_seen and streak logic (battle) ----------------
+        new_dt_battle = user.get("dt_last_seen_battle")
+        if new_dt_battle:
+            new_dt = datetime.fromisoformat(new_dt_battle)
+            old_dt_str = current.get("dt_last_seen_battle")
+            if old_dt_str:
+                old_dt = datetime.fromisoformat(old_dt_str)
+                # Compare calendar dates only
+                if (new_dt.date() - old_dt.date()) == timedelta(days=1):
+                    updated_fields["streak_count_battle"] = (
+                        current.get("streak_count_battle", 0) + 1
+                    )
+                elif (new_dt.date() - old_dt.date()) > timedelta(days=1):
+                    updated_fields["streak_count_battle"] = 1
+                # same-day play → do not increment streak
+            else:
+                updated_fields["streak_count_battle"] = 1
+            updated_fields["dt_last_seen_battle"] = new_dt_battle
 
         # ---------------- Handle other fields ----------------
+        # Keys to skip because they are handled above
+        skip_keys = {"user_id", "dt_last_seen_solo", "dt_last_seen_battle"}
+
         for key, new_value in user.items():
-            if key in ("user_id", "dt_last_seen"):
+            if key in skip_keys:
                 continue
+
+            # Skip None inputs
+            if new_value is None:
+                continue
+
             old_value = current.get(key)
 
             # lower = better (times)
-            if key in ("fastest_solo_time", "fastest_competition_time"):
-                if old_value == 0 or (new_value > 0 and new_value < old_value):
+            if key in ("fastest_solo_time", "fastest_battle_time"):
+                # treat 0 or missing as "no recorded time" -> accept any positive new_value
+                if (old_value == 0 or old_value is None) and (new_value > 0):
                     updated_fields[key] = new_value
+                # otherwise only update if new_value is better (lower)
+                elif new_value > 0 and old_value and new_value < old_value:
+                    updated_fields[key] = new_value
+
             # higher = better (counts)
-            elif key in ("num_wins", "num_solo_games", "num_competition_games"):
+            elif key in (
+                "num_complete_solo",
+                "num_solo_games",
+                "num_wins_battle",
+                "num_battle_games",
+            ):
                 increment = new_value  # frontend now sends how much to increment by
                 updated_fields[key] = (old_value or 0) + increment
 
