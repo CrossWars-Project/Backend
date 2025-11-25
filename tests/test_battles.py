@@ -570,12 +570,9 @@ def test_player1_completes_battle_wins(setup_battle):
     supabase = get_supabase()
 
     # Set battle to IN_PROGRESS
-    supabase.table("battles").update({
-        "status": "IN_PROGRESS",
-        "started_at": "2024-01-01T10:00:00Z"
-    }).eq(
-        "id", setup["battle_id"]
-    ).execute()
+    supabase.table("battles").update(
+        {"status": "IN_PROGRESS", "started_at": "2024-01-01T10:00:00Z"}
+    ).eq("id", setup["battle_id"]).execute()
 
     # Player 1 marks complete
     response = client.post(
@@ -605,12 +602,9 @@ def test_player2_completes_battle_wins(setup_battle):
     supabase = get_supabase()
 
     # Set battle to IN_PROGRESS
-    supabase.table("battles").update({
-        "status": "IN_PROGRESS",
-        "started_at": "2024-01-01T10:00:00Z"
-    }).eq(
-        "id", setup["battle_id"]
-    ).execute()
+    supabase.table("battles").update(
+        {"status": "IN_PROGRESS", "started_at": "2024-01-01T10:00:00Z"}
+    ).eq("id", setup["battle_id"]).execute()
 
     # Player 2 marks complete
     response = client.post(
@@ -640,12 +634,9 @@ def test_complete_battle_non_player_cannot_complete(setup_battle):
     supabase = get_supabase()
 
     # Set battle to IN_PROGRESS
-    supabase.table("battles").update({
-        "status": "IN_PROGRESS",
-        "started_at": "2024-01-01T10:00:00Z"
-    }).eq(
-        "id", setup["battle_id"]
-    ).execute()
+    supabase.table("battles").update(
+        {"status": "IN_PROGRESS", "started_at": "2024-01-01T10:00:00Z"}
+    ).eq("id", setup["battle_id"]).execute()
 
     # Create an intruder
     intruder_token = "intruder_token"
@@ -666,12 +657,9 @@ def test_player2_guest_completes_battle_wins(setup_guest_battle):
     supabase = get_supabase()
 
     # Set battle to IN_PROGRESS
-    supabase.table("battles").update({
-        "status": "IN_PROGRESS",
-        "started_at": "2024-01-01T10:00:00Z"
-    }).eq(
-        "id", setup["battle_id"]
-    ).execute()
+    supabase.table("battles").update(
+        {"status": "IN_PROGRESS", "started_at": "2024-01-01T10:00:00Z"}
+    ).eq("id", setup["battle_id"]).execute()
 
     # Guest marks complete (no auth header)
     response = client.post(f"/api/battles/{setup['battle_id']}/complete")
@@ -717,6 +705,7 @@ def test_already_completed_auth_player(setup_battle):
     json_response = response.json()
     assert json_response["success"] is True
     assert json_response["winner_id"] == setup["player1"]["id"]
+
 
 def test_already_completed_guest_player(setup_guest_battle):
     """Completing an already completed battle is idempotent for guest player."""
