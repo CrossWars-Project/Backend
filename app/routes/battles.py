@@ -266,20 +266,21 @@ async def end(
         winner = "player1" if winner_id == battle["player1_id"] else "player2"
         is_tie = False
 
-        supabase.table("battles").update(
-            {
-                "status": "COMPLETED",
-                f"{winner}_completed_at": completed_at,
-                "completed_at": completed_at,
-                "winner_id": winner_id,
-            }
-        ).eq("id", battle_id).execute()
+        # Build update dictionary with dynamic field name
+        update_data = {
+            "status": "COMPLETED",
+            "completed_at": completed_at,
+            "winner_id": winner_id,
+        }
+        update_data[f"{winner}_completed_at"] = completed_at
+
+        supabase.table("battles").update(update_data).eq("id", battle_id).execute()
 
         return {
             "success": True,
             "message": "Battle marked as complete.",
             "completed_at": completed_at,
-            "time": completed_at - battle["started_at"],
+            "started_at": battle["started_at"],
             "winner_id": winner_id,
             "winner": winner,
             "is_tie": is_tie,
