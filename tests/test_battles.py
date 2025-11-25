@@ -570,7 +570,10 @@ def test_player1_completes_battle_wins(setup_battle):
     supabase = get_supabase()
 
     # Set battle to IN_PROGRESS
-    supabase.table("battles").update({"status": "IN_PROGRESS"}).eq(
+    supabase.table("battles").update({
+        "status": "IN_PROGRESS",
+        "started_at": "2024-01-01T10:00:00Z"
+    }).eq(
         "id", setup["battle_id"]
     ).execute()
 
@@ -602,7 +605,10 @@ def test_player2_completes_battle_wins(setup_battle):
     supabase = get_supabase()
 
     # Set battle to IN_PROGRESS
-    supabase.table("battles").update({"status": "IN_PROGRESS"}).eq(
+    supabase.table("battles").update({
+        "status": "IN_PROGRESS",
+        "started_at": "2024-01-01T10:00:00Z"
+    }).eq(
         "id", setup["battle_id"]
     ).execute()
 
@@ -634,7 +640,10 @@ def test_complete_battle_non_player_cannot_complete(setup_battle):
     supabase = get_supabase()
 
     # Set battle to IN_PROGRESS
-    supabase.table("battles").update({"status": "IN_PROGRESS"}).eq(
+    supabase.table("battles").update({
+        "status": "IN_PROGRESS",
+        "started_at": "2024-01-01T10:00:00Z"
+    }).eq(
         "id", setup["battle_id"]
     ).execute()
 
@@ -657,7 +666,10 @@ def test_player2_guest_completes_battle_wins(setup_guest_battle):
     supabase = get_supabase()
 
     # Set battle to IN_PROGRESS
-    supabase.table("battles").update({"status": "IN_PROGRESS"}).eq(
+    supabase.table("battles").update({
+        "status": "IN_PROGRESS",
+        "started_at": "2024-01-01T10:00:00Z"
+    }).eq(
         "id", setup["battle_id"]
     ).execute()
 
@@ -680,15 +692,16 @@ def test_player2_guest_completes_battle_wins(setup_guest_battle):
     assert battle["player2_completed_at"] is not None
 
 
-def test_already_completed(setup_battle):
+def test_already_completed_auth_player(setup_battle):
     """Completing an already completed battle is idempotent."""
-    setup = setup_guest_battle
+    setup = setup_battle
     supabase = get_supabase()
 
     # Set battle to COMPLETED
     supabase.table("battles").update(
         {
             "status": "COMPLETED",
+            "completed_at": "2024-01-01T12:00:00Z",
             "winner_id": setup["player1"]["id"],
             "player1_completed_at": "2024-01-01T12:00:00Z",
         }
@@ -704,3 +717,26 @@ def test_already_completed(setup_battle):
     json_response = response.json()
     assert json_response["success"] is True
     assert json_response["winner_id"] == setup["player1"]["id"]
+
+def test_already_completed_guest_player(setup_guest_battle):
+    """Completing an already completed battle is idempotent for guest player."""
+    setup = setup_guest_battle
+    supabase = get_supabase()
+
+    # Set battle to COMPLETED
+    supabase.table("battles").update(
+        {
+            "status": "COMPLETED",
+            "completed_at": "2024-01-01T12:00:00Z",
+            "winner_id": None,
+            "player2_completed_at": "2024-01-01T12:00:00Z",
+        }
+    ).eq("id", setup["battle_id"]).execute()
+
+    # Guest tries to complete (no auth header)
+    response = client.post(f"/api/battles/{setup['battle_id']}/complete")
+
+    assert response.status_code == 200
+    json_response = response.json()
+    assert json_response["success"] is True
+    assert json_response["winner_id"] is None
