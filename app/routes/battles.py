@@ -234,8 +234,8 @@ async def end(
                 raise HTTPException(
                     status_code=403, detail="Guest access denied for this battle."
                 )
-            
-        #validate game state
+
+        # validate game state
         if battle["status"] == "COMPLETED":
             # Already completed - return existing result (idempotent)
             return {
@@ -244,28 +244,27 @@ async def end(
                 "completed_at": battle.get("completed_at"),
                 "winner_id": battle.get("winner_id"),
                 "is_tie": battle.get("winner_id") is None,
-                "already_completed": True
+                "already_completed": True,
             }
-        
+
         if battle["status"] != "IN_PROGRESS":
             raise HTTPException(
                 status_code=400,
                 detail=f"Battle not in progress. Current status: {battle['status']}",
             )
-        
+
         # Determine who just finished
         current_player_id = current_user["user_id"] if current_user else None
         completed_at = datetime.now().isoformat()
-        
+
         # Check if this is the first or second person to finish
         # Whoever finishes first is the winner
         # If both finish at "same time" (within same request), it's whoever called first
-        
+
         # First player to complete wins
         winner_id = current_player_id
         winner = "player1" if winner_id == battle["player1_id"] else "player2"
         is_tie = False
-
 
         supabase.table("battles").update(
             {
@@ -276,7 +275,7 @@ async def end(
             }
         ).eq("id", battle_id).execute()
 
-        return{
+        return {
             "success": True,
             "message": "Battle marked as complete.",
             "completed_at": completed_at,
@@ -284,11 +283,13 @@ async def end(
             "winner_id": winner_id,
             "winner": winner,
             "is_tie": is_tie,
-            "already_completed": False
+            "already_completed": False,
         }
 
     except HTTPException:
         raise
     except Exception as e:
         print("Error marking battle as complete:", e)
-        raise HTTPException(status_code=500, detail=f"Failed to mark battle as complete: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to mark battle as complete: {str(e)}"
+        )

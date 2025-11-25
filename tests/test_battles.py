@@ -101,6 +101,7 @@ def setup_guest_battle():
         },
     }
 
+
 # ═══════════════════════════════════════════════════════════
 # READY ROUTE TESTS
 # ═══════════════════════════════════════════════════════════
@@ -557,9 +558,11 @@ def test_start_battle_guest_denied_for_non_guest_battle(setup_battle):
     assert response.status_code == 403
     assert "guest access denied" in response.json()["detail"].lower()
 
+
 # ═══════════════════════════════════════════════════════════
 # COMPLETE ROUTE TESTS
 # ═══════════════════════════════════════════════════════════
+
 
 def test_player1_completes_battle_wins(setup_battle):
     """Player 1 completes the battle and is marked as winner."""
@@ -573,7 +576,8 @@ def test_player1_completes_battle_wins(setup_battle):
 
     # Player 1 marks complete
     response = client.post(
-        f"/api/battles/{setup['battle_id']}/complete", headers=setup["player1"]["headers"]
+        f"/api/battles/{setup['battle_id']}/complete",
+        headers=setup["player1"]["headers"],
     )
 
     assert response.status_code == 200
@@ -591,6 +595,7 @@ def test_player1_completes_battle_wins(setup_battle):
     assert battle["winner_id"] == setup["player1"]["id"]
     assert battle["player1_completed_at"] is not None
 
+
 def test_player2_completes_battle_wins(setup_battle):
     """Player 2 completes the battle and is marked as winner."""
     setup = setup_battle
@@ -603,7 +608,8 @@ def test_player2_completes_battle_wins(setup_battle):
 
     # Player 2 marks complete
     response = client.post(
-        f"/api/battles/{setup['battle_id']}/complete", headers=setup["player2"]["headers"]
+        f"/api/battles/{setup['battle_id']}/complete",
+        headers=setup["player2"]["headers"],
     )
 
     assert response.status_code == 200
@@ -620,6 +626,7 @@ def test_player2_completes_battle_wins(setup_battle):
     assert battle["status"] == "COMPLETED"
     assert battle["winner_id"] == setup["player2"]["id"]
     assert battle["player2_completed_at"] is not None
+
 
 def test_complete_battle_non_player_cannot_complete(setup_battle):
     """User not in the battle cannot mark it complete."""
@@ -639,9 +646,10 @@ def test_complete_battle_non_player_cannot_complete(setup_battle):
     response = client.post(
         f"/api/battles/{setup['battle_id']}/complete",
         headers={"Authorization": f"Bearer {intruder_token}"},
-    )  
+    )
     assert response.status_code == 403
     assert "not part of this battle" in response.json()["detail"].lower()
+
 
 def test_player2_guest_completes_battle_wins(setup_guest_battle):
     """Guest player (player 2) completes the battle and is marked as winner."""
@@ -671,6 +679,7 @@ def test_player2_guest_completes_battle_wins(setup_guest_battle):
     assert battle["winner_id"] is None
     assert battle["player2_completed_at"] is not None
 
+
 def test_already_completed(setup_battle):
     """Completing an already completed battle is idempotent."""
     setup = setup_guest_battle
@@ -687,12 +696,11 @@ def test_already_completed(setup_battle):
 
     # Player 2 tries to complete
     response = client.post(
-        f"/api/battles/{setup['battle_id']}/complete", headers=setup["player2"]["headers"]
+        f"/api/battles/{setup['battle_id']}/complete",
+        headers=setup["player2"]["headers"],
     )
 
     assert response.status_code == 200
     json_response = response.json()
     assert json_response["success"] is True
     assert json_response["winner_id"] == setup["player1"]["id"]
-
-    
