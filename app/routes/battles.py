@@ -241,7 +241,7 @@ async def end(
             return {
                 "success": True,
                 "message": "Battle already complete.",
-                "completed_at": battle["completed_at"],
+                "completed_at": battle.get("completed_at"),
                 "winner_id": battle.get("winner_id"),
                 "is_tie": battle.get("winner_id") is None,
                 "already_completed": True
@@ -280,6 +280,7 @@ async def end(
             "success": True,
             "message": "Battle marked as complete.",
             "completed_at": completed_at,
+            "time": completed_at - battle["started_at"],
             "winner_id": winner_id,
             "winner": winner,
             "is_tie": is_tie,
