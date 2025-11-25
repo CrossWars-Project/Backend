@@ -201,7 +201,7 @@ async def start(
 async def end(
     battle_id: str, current_user: dict | None = Depends(get_current_user_optional)
 ):
-    """Mark battle as complete and return winner and completed_at time.
+    """Mark battle as complete and return already_completed, winner, winner_id, time, and completed_at time.
     WHEN: frontend notifies backend that game is complete (someone won)"""
 
     try:
