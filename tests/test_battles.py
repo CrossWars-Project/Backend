@@ -101,6 +101,10 @@ def setup_guest_battle():
         },
     }
 
+# ═══════════════════════════════════════════════════════════
+# READY ROUTE TESTS
+# ═══════════════════════════════════════════════════════════
+
 
 def test_player1_marks_ready_success(setup_battle):
     """Player 1 successfully marks themselves as ready."""
@@ -552,3 +556,37 @@ def test_start_battle_guest_denied_for_non_guest_battle(setup_battle):
 
     assert response.status_code == 403
     assert "guest access denied" in response.json()["detail"].lower()
+
+# ═══════════════════════════════════════════════════════════
+# COMPLETE ROUTE TESTS
+# ═══════════════════════════════════════════════════════════
+
+def test_player1_completes_battle_wins(setup_battle):
+    """Player 1 completes the battle and is marked as winner."""
+    setup = setup_battle
+    supabase = get_supabase()
+
+    # Set battle to IN_PROGRESS
+    supabase.table("battles").update({"status": "IN_PROGRESS"}).eq(
+        "id", setup["battle_id"]
+    ).execute()
+
+    # Player 1 marks complete
+    response = client.post(
+        f"/api/battles/{setup['battle_id']}/complete", headers=setup["player1"]["headers"]
+    )
+
+    assert response.status_code == 200
+    json_response = response.json()
+    assert json_response["success"] is True
+    assert json_response["winner_id"] == setup["player1"]["id"]
+
+    # Verify database update
+    battle_response = (
+        supabase.table("battles").select("*").eq("id", setup["battle_id"]).execute()
+    )
+    battle = battle_response.data[0]
+
+    assert battle["status"] == "COMPLETED"
+    assert battle["winner_id"] == setup["player1"]["id"]
+    assert battle["player1_completed_at"] is not None
