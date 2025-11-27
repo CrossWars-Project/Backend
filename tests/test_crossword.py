@@ -14,14 +14,14 @@ def test_generate_without_theme_returns_400(client):
     """Test that /generate returns 400 when theme is missing."""
     res = client.post("/crossword/generate", json={})
     assert res.status_code == 400
-    assert "theme required" in res.json()["detail"]
+    assert "must include" in res.json()["detail"]
 
 
 def test_generate_with_empty_theme_returns_400(client):
     """Test that /generate returns 400 when theme is empty string."""
     res = client.post("/crossword/generate", json={"theme": ""})
     assert res.status_code == 400
-    assert "theme required" in res.json()["detail"]
+    assert "must include" in res.json()["detail"]
 
 
 def test_get_solo_without_generation_returns_404(client):
