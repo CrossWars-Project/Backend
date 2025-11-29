@@ -14,8 +14,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "http://localhost:4173",      # npm run preview
-        "https://crosswars.xyz",      # No trailing slash
+        "http://localhost:4173",  # npm run preview
+        "https://crosswars.xyz",  # No trailing slash
         "https://www.crosswars.xyz",  # Support both www and non-www
     ],
     allow_credentials=True,
