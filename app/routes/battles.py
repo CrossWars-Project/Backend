@@ -197,9 +197,100 @@ async def start(
 
 
 # battle complete game (status from in progress to completed and set completed_at, who won, what their time was)
-# @router.post("/battles/{battle_id}/complete")
-# battle winner(who won the battle and their time)
-# @router.post("/battles/{battle_id}/complete")
+@router.post("/{battle_id}/complete")
+async def end(
+    battle_id: str, current_user: dict | None = Depends(get_current_user_optional)
+):
+    """Mark battle as complete and return already_completed, winner, winner_id, time, and completed_at time.
+    WHEN: frontend notifies backend that game is complete (someone won)"""
 
+    try:
+        supabase = get_supabase()
+        # Fetch battle to check current status
 
-# frontend should also post to stats to update indidividual player stats when battle is completed
+        battle_result = (
+            supabase.table("battles").select("*").eq("id", battle_id).execute()
+        )
+
+        if not battle_result.data:
+            raise HTTPException(status_code=404, detail="Battle not found.")
+
+        battle = battle_result.data[0]
+
+        # verify player is in battle
+        if current_user:
+            # logged-in user
+            user_id = current_user["user_id"]
+            is_player1 = battle["player1_id"] == user_id
+            is_player2 = battle["player2_id"] == user_id
+
+            if not (is_player1 or is_player2):
+                raise HTTPException(
+                    status_code=403, detail="You are not part of this battle."
+                )
+        else:
+            # guest user
+            if not battle["player2_is_guest"]:
+                raise HTTPException(
+                    status_code=403, detail="Guest access denied for this battle."
+                )
+
+        # validate game state
+        if battle["status"] == "COMPLETED":
+            # Already completed - return existing result (idempotent)
+            return {
+                "success": True,
+                "message": "Battle already complete.",
+                "completed_at": battle.get("completed_at"),
+                "winner_id": battle.get("winner_id"),
+                "is_tie": battle.get("winner_id") is None,
+                "already_completed": True,
+            }
+
+        if battle["status"] != "IN_PROGRESS":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Battle not in progress. Current status: {battle['status']}",
+            )
+
+        # Determine who just finished
+        current_player_id = current_user["user_id"] if current_user else None
+        completed_at = datetime.now().isoformat()
+
+        # Check if this is the first or second person to finish
+        # Whoever finishes first is the winner
+        # If both finish at "same time" (within same request), it's whoever called first
+
+        # First player to complete wins
+        winner_id = current_player_id
+        winner = "player1" if winner_id == battle["player1_id"] else "player2"
+        is_tie = False
+
+        # Build update dictionary with dynamic field name
+        update_data = {
+            "status": "COMPLETED",
+            "completed_at": completed_at,
+            "winner_id": winner_id,
+        }
+        update_data[f"{winner}_completed_at"] = completed_at
+
+        supabase.table("battles").update(update_data).eq("id", battle_id).execute()
+
+        return {
+            "success": True,
+            "message": "Battle marked as complete.",
+            "completed_at": completed_at,
+            "started_at": battle["started_at"],
+            "winner_id": winner_id,
+            "winner": winner,
+            "is_tie": is_tie,
+            "already_completed": False,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("Error marking battle as complete:", e)
+        raise HTTPException(
+            status_code=500, detail=f"Failed to mark battle as complete: {str(e)}"
+        )
