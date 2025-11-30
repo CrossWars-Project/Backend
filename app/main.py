@@ -12,9 +12,11 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
+        "http://localhost:5173",  # default npm run dev route
         "http://127.0.0.1:5173",
-        "https://www.crosswars.xyz/",
+        "http://localhost:4173",  # common npm run preview route
+        "https://crosswars.xyz",  # No trailing slash
+        "https://www.crosswars.xyz",  # Support both www and non-www
     ],
     allow_credentials=True,
     allow_methods=["*"],
