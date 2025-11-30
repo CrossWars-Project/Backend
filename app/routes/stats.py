@@ -12,6 +12,11 @@ from fastapi import Depends
 
 @router.post("/create_user_stats")
 def create_user_stats(user: dict, current_user: dict = Depends(get_current_user)):
+    """
+    Creates a new entry in the stats table with default values for a new user.
+    First verifies whether the users user id already exists in the table. If it does, returns gracefully.
+    If not, proceeds with adding a new entry with default stats.
+    """
     supabase = get_supabase()
     user_id = current_user["user_id"]
 
