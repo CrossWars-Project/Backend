@@ -68,6 +68,58 @@ def test_create_user_stats_creates_entry_and_gets_saved():
     assert data3["data"][0]["display_name"] == MOCK_USER["display_name"]
 
 
+def test_create_user_stats_when_stats_already_exist_returns_existing_row():
+    from app.main import app
+    from app.auth import get_current_user
+
+    # 1. Mock authentication for our test user
+    test_user_id = MOCK_USER["id"]
+    app.dependency_overrides[get_current_user] = lambda: _make_auth_user_for_mock(
+        test_user_id, MOCK_USER["display_name"]
+    )
+
+    client = TestClient(app)
+
+    # 2. First create call → should insert successfully
+    res1 = client.post("/stats/create_user_stats", json=MOCK_USER)
+    assert res1.status_code == 200
+    data1 = res1.json()
+    assert data1["success"] is True
+
+    # Normalize data1["data"] into a dict
+    initial_row = data1["data"]
+    if isinstance(initial_row, list):  # backend sometimes wraps in list?
+        initial_row = initial_row[0]
+
+    # 3. Second create call → SHOULD NOT ERROR, SHOULD RETURN EXISTING ROW
+    res2 = client.post("/stats/create_user_stats", json=MOCK_USER)
+    assert res2.status_code == 200
+    data2 = res2.json()
+
+    assert data2["success"] is True
+    assert "already" in data2.get("message", "").lower()
+
+    # Normalize result again
+    returned_row = data2["data"]
+    if isinstance(returned_row, list):
+        returned_row = returned_row[0]
+
+    # Validate same user
+    assert returned_row["user_id"] == initial_row["user_id"]
+    assert returned_row["display_name"] == initial_row["display_name"]
+
+    # Ensure no duplicates exist
+    res3 = client.get(f"/stats/get_user_stats/{test_user_id}")
+    assert res3.status_code == 200
+    data3 = res3.json()
+    assert data3["exists"] is True
+
+    # Should contain *exactly* 1 row
+    rows = data3["data"]
+    assert isinstance(rows, list)
+    assert len(rows) == 1
+
+
 def test_update_user_stats_user_not_found_for_authenticated_user():
     from app.main import app
     from app.auth import get_current_user

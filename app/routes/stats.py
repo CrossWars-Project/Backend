@@ -13,12 +13,26 @@ from fastapi import Depends
 @router.post("/create_user_stats")
 def create_user_stats(user: dict, current_user: dict = Depends(get_current_user)):
     """
-    Creates a default stats row for the authenticated user.
-    Body may include 'display_name' to override username.
+    Creates a new entry in the stats table with default values for a new user.
+    First verifies whether the users user id already exists in the table. If it does, returns gracefully.
+    If not, proceeds with adding a new entry with default stats.
     """
     supabase = get_supabase()
+    user_id = current_user["user_id"]
+
     try:
-        user_id = current_user["user_id"]
+        # Check if stats already exist
+        existing = supabase.table("Stats").select("*").eq("user_id", user_id).execute()
+
+        if existing.data:
+            # Return existing stats instead of failing if users stats already exist
+            return {
+                "success": True,
+                "data": existing.data[0],
+                "message": "Stats already exist",
+            }
+
+        # otherwise create new entry with default stats
         display_name = user.get("display_name") or current_user.get("username") or ""
 
         response = (
@@ -42,13 +56,8 @@ def create_user_stats(user: dict, current_user: dict = Depends(get_current_user)
             .execute()
         )
 
-        if not response.data:
-            raise HTTPException(status_code=400, detail="Failed to insert user stats")
-
         return {"success": True, "data": response.data}
 
-    except HTTPException:
-        raise
     except Exception as e:
         print("Error inserting user stats:", e)
         raise HTTPException(status_code=500, detail=str(e))
