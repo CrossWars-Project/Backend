@@ -16,33 +16,33 @@ router = APIRouter()
 
 def get_crossword_from_storage(filename: str):
     """Fetch crossword from Supabase Storage, fallback to local file"""
-    
+
     # Try Supabase Storage first (for production)
     supabase_url = os.getenv("SUPABASE_URL")
     supabase_key = os.getenv("SUPABASE_KEY")
-    
+
     if supabase_url and supabase_key:
         try:
             supabase = create_client(supabase_url, supabase_key)
-            
+
             # Download file from Supabase Storage
             response = supabase.storage.from_("crosswords").download(filename)
-            
+
             if response:
-                data = json.loads(response.decode('utf-8'))
+                data = json.loads(response.decode("utf-8"))
                 print(f"✅ Fetched {filename} from Supabase Storage")
                 return data
         except Exception as e:
             print(f"⚠️  Error fetching from Supabase Storage: {e}")
             print(f"Falling back to local file...")
-    
+
     # Fallback to local file (for local development)
     file_path = Path(__file__).parent.parent / filename
     if file_path.exists():
         with open(file_path, "r", encoding="utf-8") as f:
             print(f"✅ Fetched {filename} from local filesystem")
             return json.load(f)
-    
+
     return None
 
 
@@ -154,13 +154,13 @@ def get_solo_crossword():
     """
     try:
         data = get_crossword_from_storage("solo_play.json")
-        
+
         if not data:
             raise HTTPException(
                 status_code=404,
                 detail="No solo crossword available. Wait for daily generation.",
             )
-        
+
         return {"success": True, "data": data}
     except HTTPException:
         raise
@@ -178,13 +178,13 @@ def get_battle_crossword():
     """
     try:
         data = get_crossword_from_storage("battle_play.json")
-        
+
         if not data:
             raise HTTPException(
                 status_code=404,
                 detail="No battle crossword available. Wait for daily generation.",
             )
-        
+
         return {"success": True, "data": data}
     except HTTPException:
         raise
@@ -202,10 +202,10 @@ def get_latest_crossword():
     """
     try:
         data = get_crossword_from_storage("latest_crossword.json")
-        
+
         if not data:
             raise HTTPException(status_code=404, detail="No latest crossword found")
-        
+
         return {"success": True, "data": data}
     except HTTPException:
         raise
@@ -305,7 +305,7 @@ def test_clear_crosswords():
     """
     try:
         deleted = []
-        
+
         # Clear local files
         app_dir = Path(__file__).parent.parent
         files_to_delete = [
@@ -319,15 +319,15 @@ def test_clear_crosswords():
             if file_path.exists():
                 os.remove(file_path)
                 deleted.append(f"{filename} (local)")
-        
+
         # Clear Supabase Storage files
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_key = os.getenv("SUPABASE_KEY")
-        
+
         if supabase_url and supabase_key:
             try:
                 supabase = create_client(supabase_url, supabase_key)
-                
+
                 for filename in files_to_delete:
                     try:
                         supabase.storage.from_("crosswords").remove([filename])

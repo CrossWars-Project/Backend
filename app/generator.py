@@ -183,27 +183,29 @@ def generate_clues(words: List[str]) -> dict:
 def save_to_supabase_storage(data: dict, filename: str):
     """Save crossword data to Supabase Storage bucket"""
     from supabase import create_client
-    
+
     supabase_url = os.getenv("SUPABASE_URL")
     supabase_key = os.getenv("SUPABASE_KEY")
-    
+
     if not supabase_url or not supabase_key:
-        print("Warning: Supabase credentials missing, falling back to local storage only")
+        print(
+            "Warning: Supabase credentials missing, falling back to local storage only"
+        )
         return False
-    
+
     try:
         supabase = create_client(supabase_url, supabase_key)
-        
+
         # Convert data to JSON string
         json_data = json.dumps(data, indent=2)
-        
+
         # Upload to Supabase Storage (create 'crosswords' bucket in Supabase dashboard first)
         supabase.storage.from_("crosswords").upload(
             filename,
-            json_data.encode('utf-8'),
-            file_options={"content-type": "application/json", "upsert": "true"}
+            json_data.encode("utf-8"),
+            file_options={"content-type": "application/json", "upsert": "true"},
         )
-        
+
         print(f"✅ Successfully saved {filename} to Supabase Storage")
         return True
     except Exception as e:
@@ -271,7 +273,7 @@ def build_and_save(theme: str):
     out_path = Path(__file__).parent / "latest_crossword.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(response_obj, f, indent=2)
-    
+
     # 8) ALSO save to Supabase Storage (for production persistence)
     save_to_supabase_storage(response_obj, "latest_crossword.json")
 
