@@ -4,7 +4,7 @@ Crossword generator that:
  - Uses OpenAI API to generate themed words
  - Uses pycrossword to arrange words into a 5x5 grid
  - Generates clues for each word
- - Writes output to latest_crossword.json
+ - Writes output to latest_crossword.json and Supabase Storage
 
 Requires:
 - Python 3.12+
@@ -26,7 +26,6 @@ load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("OPENAI_API_KEY not found in environment variables.")
-# Testing only: print("OPENAI_API_KEY repr:", repr(api_key))
 
 # ------------------ Put your OpenAI API key here ------------------
 OPENAI_API_KEY = api_key
@@ -181,6 +180,39 @@ def generate_clues(words: List[str]) -> dict:
     return clues
 
 
+def save_to_supabase_storage(data: dict, filename: str):
+    """Save crossword data to Supabase Storage bucket"""
+    from supabase import create_client
+
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_KEY")
+
+    if not supabase_url or not supabase_key:
+        print(
+            "Warning: Supabase credentials missing, falling back to local storage only"
+        )
+        return False
+
+    try:
+        supabase = create_client(supabase_url, supabase_key)
+
+        # Convert data to JSON string
+        json_data = json.dumps(data, indent=2)
+
+        # Upload to Supabase Storage (create 'crosswords' bucket in Supabase dashboard first)
+        supabase.storage.from_("crosswords").upload(
+            filename,
+            json_data.encode("utf-8"),
+            file_options={"content-type": "application/json", "upsert": "true"},
+        )
+
+        print(f"✅ Successfully saved {filename} to Supabase Storage")
+        return True
+    except Exception as e:
+        print(f"❌ Error saving to Supabase Storage: {e}")
+        return False
+
+
 # Build final JSON response, write to latest_crossword.json
 def build_and_save(theme: str):
     # 1) get words - request 30 words for more variety
@@ -237,10 +269,13 @@ def build_and_save(theme: str):
         "clues_down": down_clues,
     }
 
-    # 7) write to file
+    # 7) write to local file (for local development)
     out_path = Path(__file__).parent / "latest_crossword.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(response_obj, f, indent=2)
+
+    # 8) ALSO save to Supabase Storage (for production persistence)
+    save_to_supabase_storage(response_obj, "latest_crossword.json")
 
     return response_obj
 

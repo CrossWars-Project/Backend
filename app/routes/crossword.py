@@ -9,8 +9,41 @@ import os
 import random
 from datetime import datetime
 from typing import Optional
+from supabase import create_client
 
 router = APIRouter()
+
+
+def get_crossword_from_storage(filename: str):
+    """Fetch crossword from Supabase Storage, fallback to local file"""
+
+    # Try Supabase Storage first (for production)
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_KEY")
+
+    if supabase_url and supabase_key:
+        try:
+            supabase = create_client(supabase_url, supabase_key)
+
+            # Download file from Supabase Storage
+            response = supabase.storage.from_("crosswords").download(filename)
+
+            if response:
+                data = json.loads(response.decode("utf-8"))
+                print(f"✅ Fetched {filename} from Supabase Storage")
+                return data
+        except Exception as e:
+            print(f"⚠️  Error fetching from Supabase Storage: {e}")
+            print(f"Falling back to local file...")
+
+    # Fallback to local file (for local development)
+    file_path = Path(__file__).parent.parent / filename
+    if file_path.exists():
+        with open(file_path, "r", encoding="utf-8") as f:
+            print(f"✅ Fetched {filename} from local filesystem")
+            return json.load(f)
+
+    return None
 
 
 @router.post("/generate")
@@ -85,23 +118,19 @@ def generate_daily_crosswords():
         battle_theme = themes[(day_of_year + 1) % len(themes)]
 
         results = {}
-        app_dir = Path(__file__).parent.parent
-        latest_path = app_dir / "latest_crossword.json"
-        solo_path = app_dir / "solo_play.json"
-        battle_path = app_dir / "battle_play.json"
 
         # Generate solo crossword
         print(f"Generating solo crossword with theme: {solo_theme}")
-        generator.build_and_save(solo_theme)
-        shutil.copy2(latest_path, solo_path)
+        solo_data = generator.build_and_save(solo_theme)
+        generator.save_to_supabase_storage(solo_data, "solo_play.json")
         results["solo"] = {"theme": solo_theme, "status": "generated"}
 
         time.sleep(3)
 
         # Generate battle crossword
         print(f"Generating battle crossword with theme: {battle_theme}")
-        generator.build_and_save(battle_theme)
-        shutil.copy2(latest_path, battle_path)
+        battle_data = generator.build_and_save(battle_theme)
+        generator.save_to_supabase_storage(battle_data, "battle_play.json")
         results["battle"] = {"theme": battle_theme, "status": "generated"}
 
         return {
@@ -121,22 +150,22 @@ def generate_daily_crosswords():
 def get_solo_crossword():
     """
     GET /crossword/solo
-    Returns the daily solo play crossword from solo_play.json.
+    Returns the daily solo play crossword from Supabase Storage or local file.
     """
-    file_path = Path(__file__).parent.parent / "solo_play.json"
-
-    if not file_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="No solo crossword available. Wait for daily generation.",
-        )
-
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        data = get_crossword_from_storage("solo_play.json")
+
+        if not data:
+            raise HTTPException(
+                status_code=404,
+                detail="No solo crossword available. Wait for daily generation.",
+            )
+
         return {"success": True, "data": data}
+    except HTTPException:
+        raise
     except Exception as e:
-        print("Error reading solo_play.json:", e)
+        print("Error reading solo crossword:", e)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -145,22 +174,22 @@ def get_solo_crossword():
 def get_battle_crossword():
     """
     GET /crossword/battle
-    Returns the daily battle play crossword from battle_play.json.
+    Returns the daily battle play crossword from Supabase Storage or local file.
     """
-    file_path = Path(__file__).parent.parent / "battle_play.json"
-
-    if not file_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="No battle crossword available. Wait for daily generation.",
-        )
-
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        data = get_crossword_from_storage("battle_play.json")
+
+        if not data:
+            raise HTTPException(
+                status_code=404,
+                detail="No battle crossword available. Wait for daily generation.",
+            )
+
         return {"success": True, "data": data}
+    except HTTPException:
+        raise
     except Exception as e:
-        print("Error reading battle_play.json:", e)
+        print("Error reading battle crossword:", e)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -169,19 +198,19 @@ def get_battle_crossword():
 def get_latest_crossword():
     """
     GET /crossword/latest
-    Returns the last saved latest_crossword.json.
+    Returns the last saved crossword from Supabase Storage or local file.
     """
-    file_path = Path(__file__).parent.parent / "latest_crossword.json"
-
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="No latest crossword found")
-
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        data = get_crossword_from_storage("latest_crossword.json")
+
+        if not data:
+            raise HTTPException(status_code=404, detail="No latest crossword found")
+
         return {"success": True, "data": data}
+    except HTTPException:
+        raise
     except Exception as e:
-        print("Error reading latest_crossword.json:", e)
+        print("Error reading latest crossword:", e)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -225,18 +254,14 @@ def test_generate_new_crossword(payload: Optional[dict] = None):
     try:
         from app import generator
 
-        app_dir = Path(__file__).parent.parent
-        latest_path = app_dir / "latest_crossword.json"
         results = {}
 
         # Generate Solo
         if mode in ["solo", "both"]:
             solo_theme = custom_theme or random.choice(themes)
             print(f"TEST: Generating solo crossword with theme: {solo_theme}")
-            generator.build_and_save(solo_theme)
-
-            solo_path = app_dir / "solo_play.json"
-            shutil.copy2(latest_path, solo_path)
+            solo_data = generator.build_and_save(solo_theme)
+            generator.save_to_supabase_storage(solo_data, "solo_play.json")
             results["solo"] = {
                 "theme": solo_theme,
                 "status": "generated",
@@ -248,10 +273,8 @@ def test_generate_new_crossword(payload: Optional[dict] = None):
         if mode in ["battle", "both"]:
             battle_theme = custom_theme or random.choice(themes)
             print(f"TEST: Generating battle crossword with theme: {battle_theme}")
-            generator.build_and_save(battle_theme)
-
-            battle_path = app_dir / "battle_play.json"
-            shutil.copy2(latest_path, battle_path)
+            battle_data = generator.build_and_save(battle_theme)
+            generator.save_to_supabase_storage(battle_data, "battle_play.json")
             results["battle"] = {
                 "theme": battle_theme,
                 "status": "generated",
@@ -277,10 +300,13 @@ def test_clear_crosswords():
     """
     DELETE /crossword/test/clear-all
 
-    TESTING ONLY: Deletes all crossword JSON files.
+    TESTING ONLY: Deletes all crossword JSON files from both local filesystem and Supabase Storage.
     Useful for testing the "no crossword available" error state.
     """
     try:
+        deleted = []
+
+        # Clear local files
         app_dir = Path(__file__).parent.parent
         files_to_delete = [
             "latest_crossword.json",
@@ -288,12 +314,28 @@ def test_clear_crosswords():
             "battle_play.json",
         ]
 
-        deleted = []
         for filename in files_to_delete:
             file_path = app_dir / filename
             if file_path.exists():
                 os.remove(file_path)
-                deleted.append(filename)
+                deleted.append(f"{filename} (local)")
+
+        # Clear Supabase Storage files
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_KEY")
+
+        if supabase_url and supabase_key:
+            try:
+                supabase = create_client(supabase_url, supabase_key)
+
+                for filename in files_to_delete:
+                    try:
+                        supabase.storage.from_("crosswords").remove([filename])
+                        deleted.append(f"{filename} (storage)")
+                    except Exception as e:
+                        print(f"Note: Could not delete {filename} from storage: {e}")
+            except Exception as e:
+                print(f"Warning: Could not connect to Supabase Storage: {e}")
 
         return {
             "success": True,
