@@ -98,13 +98,16 @@ def get_user_stats(user_id: str):
             if days_since_battle >= 2:
                 updated_fields["streak_count_battle"] = 0
 
-
         # If any resets are needed → update DB
         if updated_fields:
-            supabase.table("Stats").update(updated_fields).eq("user_id", user_id).execute()
+            supabase.table("Stats").update(updated_fields).eq(
+                "user_id", user_id
+            ).execute()
 
             # Re-fetch updated row
-            response = supabase.table("Stats").select("*").eq("user_id", user_id).execute()
+            response = (
+                supabase.table("Stats").select("*").eq("user_id", user_id).execute()
+            )
             data = response.data or []
 
         return {"exists": True, "data": data}
@@ -112,7 +115,6 @@ def get_user_stats(user_id: str):
     except Exception as e:
         print("Error fetching user stats:", e)
         raise HTTPException(status_code=500, detail=str(e))
-
 
 
 @router.put("/update_user_stats")
@@ -146,7 +148,7 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
         new_streak_solo = user.get("streak_count_solo")
         if new_streak_solo is not None:
             updated_fields["streak_count_solo"] = new_streak_solo
-        
+
         new_streak_battle = user.get("streak_count_battle")
         if new_streak_battle is not None:
             updated_fields["streak_count_battle"] = new_streak_battle
