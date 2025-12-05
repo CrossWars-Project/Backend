@@ -234,14 +234,41 @@ def build_and_save(theme: str):
 
     print(f"Placed {len(placed_words)} words in crossword")
 
-    # 4) render grid CLI-style
+    # 4) FIX: Remove duplicate words that start at the same position
+    # This happens when a shorter word is a substring of a longer word at the same position
+    cleaned_placed_words = []
+    position_map = {}  # Map (row, col, is_across) -> word
+    
+    for word_data in placed_words:
+        word, row, col, is_across = word_data
+        key = (row, col, is_across)
+        
+        if key in position_map:
+            # We already have a word at this position
+            existing_word = position_map[key]
+            # Keep the longer word
+            if len(word) > len(existing_word):
+                # Remove the old word from cleaned list
+                cleaned_placed_words = [w for w in cleaned_placed_words if not (w[0] == existing_word and w[1] == row and w[2] == col and w[3] == is_across)]
+                cleaned_placed_words.append(word_data)
+                position_map[key] = word
+            # else: keep the existing longer word, skip this one
+        else:
+            # New position, add it
+            cleaned_placed_words.append(word_data)
+            position_map[key] = word
+    
+    placed_words = cleaned_placed_words
+    print(f"After deduplication: {len(placed_words)} unique words")
+
+    # 5) render grid CLI-style
     grid = render_crossword(placed_words, dimensions)
 
     # Pad grid to ensure it's always 5x5
     grid = pad_grid_to_5x5(grid)
     dimensions = (5, 5)  # Update dimensions to reflect padded size
 
-    # 5) organize clues by across/down
+    # 6) organize clues by across/down
     if clues:
         across_clues = [
             clues[p[0]][0]
@@ -257,7 +284,7 @@ def build_and_save(theme: str):
         across_clues = []
         down_clues = []
 
-    # 6) create JSON structure
+    # 7) create JSON structure
     response_obj = {
         "theme": theme,
         "words_sent": words,
@@ -269,12 +296,12 @@ def build_and_save(theme: str):
         "clues_down": down_clues,
     }
 
-    # 7) write to local file (for local development)
+    # 8) write to local file (for local development)
     out_path = Path(__file__).parent / "latest_crossword.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(response_obj, f, indent=2)
 
-    # 8) ALSO save to Supabase Storage (for production persistence)
+    # 9) ALSO save to Supabase Storage (for production persistence)
     save_to_supabase_storage(response_obj, "latest_crossword.json")
 
     return response_obj
