@@ -1,4 +1,5 @@
 # Handle get and posts to the user stats table
+from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
 from app.db import get_supabase
@@ -68,17 +69,52 @@ def get_user_stats(user_id: str):
     supabase = get_supabase()
     try:
         response = supabase.table("Stats").select("*").eq("user_id", user_id).execute()
-
-        # ✅ No .error; just check for data
         data = response.data or []
-        return {"exists": len(data) > 0, "data": data}
+
+        if not data:
+            return {"exists": False, "data": []}
+
+        stats = data[0]
+        updated_fields = {}
+
+        today = datetime.utcnow().date()
+
+        # --- SOLO ---
+        last_solo = stats.get("dt_last_seen_solo")
+        if last_solo:
+            last_solo_dt = datetime.fromisoformat(last_solo).date()
+            days_since_solo = (today - last_solo_dt).days
+
+            # reset if last play was 2 or more days ago
+            if days_since_solo >= 2:
+                updated_fields["streak_count_solo"] = 0
+
+        # --- BATTLE ---
+        last_battle = stats.get("dt_last_seen_battle")
+        if last_battle:
+            last_battle_dt = datetime.fromisoformat(last_battle).date()
+            days_since_battle = (today - last_battle_dt).days
+
+            if days_since_battle >= 2:
+                updated_fields["streak_count_battle"] = 0
+
+        # If any resets are needed → update DB
+        if updated_fields:
+            supabase.table("Stats").update(updated_fields).eq(
+                "user_id", user_id
+            ).execute()
+
+            # Re-fetch updated row
+            response = (
+                supabase.table("Stats").select("*").eq("user_id", user_id).execute()
+            )
+            data = response.data or []
+
+        return {"exists": True, "data": data}
 
     except Exception as e:
         print("Error fetching user stats:", e)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-from datetime import datetime, timedelta
 
 
 @router.put("/update_user_stats")
@@ -108,6 +144,17 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
         updated_fields = {}
 
         # ---------------- Handle dt_last_seen and streak logic (solo) ----------------
+        # the get route may update the streak directly if it finds the streak to be outdated on fetch.
+        new_streak_solo = user.get("streak_count_solo")
+        if new_streak_solo is not None:
+            updated_fields["streak_count_solo"] = new_streak_solo
+
+        new_streak_battle = user.get("streak_count_battle")
+        if new_streak_battle is not None:
+            updated_fields["streak_count_battle"] = new_streak_battle
+
+        # frontend passes the date of last play on completion of a game. We perform the logic to calculate the
+        # streak from those dates here.
         new_dt_solo = user.get("dt_last_seen_solo")
         if new_dt_solo:
             new_dt = datetime.fromisoformat(new_dt_solo)

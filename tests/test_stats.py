@@ -1,4 +1,5 @@
 # tests/test_stats.py
+from datetime import datetime, timedelta
 import pytest
 import uuid
 from fastapi.testclient import TestClient
@@ -229,3 +230,107 @@ def test_unauthenticated_requests_are_rejected_with_401():
     # calling update endpoint without auth should return 401
     res2 = client.put("/stats/update_user_stats", json={"num_wins_battle": 1})
     assert res2.status_code == 401
+
+
+# -------------------------------------------------
+# STREAK UPDATE TESTS
+# -------------------------------------------------
+
+
+def test_streak_increment_and_no_increment_same_day_solo():
+    from app.main import app
+    from app.auth import get_current_user
+
+    user_id = str(uuid.uuid4())
+    app.dependency_overrides[get_current_user] = lambda: _make_auth_user_for_mock(
+        user_id, "SoloTester"
+    )
+    client = TestClient(app)
+
+    client.post("/stats/create_user_stats", json={"id": user_id})
+
+    today = datetime.utcnow().isoformat()
+
+    # First play → streak = 1
+    r1 = client.put("/stats/update_user_stats", json={"dt_last_seen_solo": today})
+    assert r1.status_code == 200
+    assert r1.json()["updated_data"][0]["streak_count_solo"] == 1
+
+    # Same day play → streak should NOT increment
+    r2 = client.put("/stats/update_user_stats", json={"dt_last_seen_solo": today})
+    assert r2.status_code == 200
+
+    streak = r2.json()["updated_data"][0]["streak_count_solo"]
+    assert streak == 1
+
+
+def test_streak_increment_and_no_increment_same_day_battle():
+    from app.main import app
+    from app.auth import get_current_user
+
+    user_id = str(uuid.uuid4())
+    app.dependency_overrides[get_current_user] = lambda: _make_auth_user_for_mock(
+        user_id, "BattleTester"
+    )
+    client = TestClient(app)
+
+    client.post("/stats/create_user_stats", json={"id": user_id})
+
+    today = datetime.utcnow().isoformat()
+
+    r1 = client.put("/stats/update_user_stats", json={"dt_last_seen_battle": today})
+    assert r1.status_code == 200
+    assert r1.json()["updated_data"][0]["streak_count_battle"] == 1
+
+    # Same day → streak unchanged
+    r2 = client.put("/stats/update_user_stats", json={"dt_last_seen_battle": today})
+    assert r2.status_code == 200
+
+    streak = r2.json()["updated_data"][0]["streak_count_battle"]
+    assert streak == 1
+
+
+def test_streak_resets_after_two_days_solo():
+    from app.main import app
+    from app.auth import get_current_user
+
+    user_id = str(uuid.uuid4())
+    app.dependency_overrides[get_current_user] = lambda: _make_auth_user_for_mock(
+        user_id, "ResetTesterS"
+    )
+    client = TestClient(app)
+
+    client.post("/stats/create_user_stats", json={"id": user_id})
+
+    two_days_ago = (datetime.utcnow() - timedelta(days=2)).date().isoformat()
+
+    # Insert last_seen manually via update
+    client.put("/stats/update_user_stats", json={"dt_last_seen_solo": two_days_ago})
+
+    # GET route should detect >=2 days gap AND reset streak
+    get_res = client.get(f"/stats/get_user_stats/{user_id}")
+    assert get_res.status_code == 200
+    row = get_res.json()["data"][0]
+    assert row["streak_count_solo"] == 0
+
+
+def test_streak_resets_after_two_days_battle():
+    from app.main import app
+    from app.auth import get_current_user
+
+    user_id = str(uuid.uuid4())
+    app.dependency_overrides[get_current_user] = lambda: _make_auth_user_for_mock(
+        user_id, "ResetTesterB"
+    )
+    client = TestClient(app)
+
+    client.post("/stats/create_user_stats", json={"id": user_id})
+
+    two_days_ago = (datetime.utcnow() - timedelta(days=2)).date().isoformat()
+
+    client.put("/stats/update_user_stats", json={"dt_last_seen_battle": two_days_ago})
+
+    get_res = client.get(f"/stats/get_user_stats/{user_id}")
+    assert get_res.status_code == 200
+    row = get_res.json()["data"][0]
+    assert row["streak_count_battle"] == 0
