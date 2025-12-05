@@ -16,7 +16,7 @@ import os
 import json
 import re
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Tuple, Optional
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -213,12 +213,12 @@ def save_to_supabase_storage(data: dict, filename: str):
         return False
 
 
-def detect_overlapping_substrings(placed_words: list) -> tuple:
+def detect_overlapping_substrings(placed_words: list) -> Tuple[bool, Optional[str]]:
     """
     Detect if any word is a substring of another word at the same position with same orientation.
     Returns (has_overlap, word_to_remove) where word_to_remove is the shorter word.
     """
-    position_map = {}  # Map (row, col, is_across) -> word
+    position_map: Dict[Tuple[int, int, bool], str] = {}
 
     for word_data in placed_words:
         word, row, col, is_across = word_data
@@ -279,8 +279,8 @@ def build_and_save(theme: str):
             if attempt == max_retries - 1:
                 print(f"⚠️  Max retries reached. Using current placement.")
                 # Remove the duplicate from placed_words
-                position_map = {}
-                cleaned_placed_words = []
+                position_map: Dict[Tuple[int, int, bool], str] = {}
+                cleaned_placed_words: List[list] = []
                 for word_data in placed_words:
                     word, row, col, is_across = word_data
                     key = (row, col, is_across)
