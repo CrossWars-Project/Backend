@@ -244,7 +244,7 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
             old_value = current.get(key)
 
             # lower = better (times)
-            if key in ("fastest_solo_time", "fastest_battle_time"):
+            if key in ("fastest_solo_time"):
                 # treat 0 or missing as "no recorded time" -> accept any positive new_value
                 if (old_value == 0 or old_value is None) and (new_value > 0):
                     updated_fields[key] = new_value
