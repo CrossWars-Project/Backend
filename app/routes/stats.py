@@ -217,10 +217,6 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
         if new_streak_solo is not None:
             updated_fields["streak_count_solo"] = new_streak_solo
 
-        new_streak_battle = user.get("streak_count_battle")
-        if new_streak_battle is not None:
-            updated_fields["streak_count_battle"] = new_streak_battle
-
         # frontend passes the date of last play on completion of a game. We perform the logic to calculate the
         # streak from those dates here.
         new_dt_solo = user.get("dt_last_seen_solo")
@@ -241,28 +237,9 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
                 updated_fields["streak_count_solo"] = 1
             updated_fields["dt_last_seen_solo"] = new_dt_solo
 
-        # ---------------- Handle dt_last_seen and streak logic (battle) ----------------
-        new_dt_battle = user.get("dt_last_seen_battle")
-        if new_dt_battle:
-            new_dt = datetime.fromisoformat(new_dt_battle)
-            old_dt_str = current.get("dt_last_seen_battle")
-            if old_dt_str:
-                old_dt = datetime.fromisoformat(old_dt_str)
-                # Compare calendar dates only
-                if (new_dt.date() - old_dt.date()) == timedelta(days=1):
-                    updated_fields["streak_count_battle"] = (
-                        current.get("streak_count_battle", 0) + 1
-                    )
-                elif (new_dt.date() - old_dt.date()) > timedelta(days=1):
-                    updated_fields["streak_count_battle"] = 1
-                # same-day play → do not increment streak
-            else:
-                updated_fields["streak_count_battle"] = 1
-            updated_fields["dt_last_seen_battle"] = new_dt_battle
-
         # ---------------- Handle other fields ----------------
         # Keys to skip because they are handled above
-        skip_keys = {"user_id", "dt_last_seen_solo", "dt_last_seen_battle"}
+        skip_keys = {"user_id", "dt_last_seen_solo",}
 
         for key, new_value in user.items():
             if key in skip_keys:
@@ -287,8 +264,6 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
             elif key in (
                 "num_complete_solo",
                 "num_solo_games",
-                "num_wins_battle",
-                "num_battle_games",
             ):
                 increment = new_value  # frontend now sends how much to increment by
                 updated_fields[key] = (old_value or 0) + increment
