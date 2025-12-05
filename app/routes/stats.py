@@ -116,13 +116,16 @@ def get_user_stats(user_id: str):
         print("Error fetching user stats:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.put("/update_battle_stats")
-def update_battle_stats(user: dict, current_user: dict = Depends(get_current_user), winner_id: str = None):
+def update_battle_stats(
+    user: dict, current_user: dict = Depends(get_current_user), winner_id: str = None
+):
     """
     Updates the battle stats for an (authenticated) user.
     First checks if there is no user_id (ex: one of the battle players was a guest user)
     If this is the case, does not update anything and returns success.
-    Then, if there is a user_id, check whether or not the id matches the winner_id and updates 
+    Then, if there is a user_id, check whether or not the id matches the winner_id and updates
     win stats and fastest time stat accordingly.
     """
     supabase = get_supabase()
@@ -162,7 +165,7 @@ def update_battle_stats(user: dict, current_user: dict = Depends(get_current_use
         else:
             # if they lost, reset their win streak
             updated_fields["streak_count_battle"] = 0
-            
+
         if not updated_fields:
             return {"success": False, "message": "No better stats to update"}
 
@@ -180,6 +183,7 @@ def update_battle_stats(user: dict, current_user: dict = Depends(get_current_use
     except Exception as e:
         print("Error updating battle stats:", e)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.put("/update_user_stats")
 def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)):
