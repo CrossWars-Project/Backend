@@ -213,6 +213,32 @@ def save_to_supabase_storage(data: dict, filename: str):
         return False
 
 
+def detect_overlapping_substrings(placed_words: list) -> tuple:
+    """
+    Detect if any word is a substring of another word at the same position with same orientation.
+    Returns (has_overlap, word_to_remove) where word_to_remove is the shorter word.
+    """
+    position_map = {}  # Map (row, col, is_across) -> word
+    
+    for word_data in placed_words:
+        word, row, col, is_across = word_data
+        key = (row, col, is_across)
+        
+        if key in position_map:
+            existing_word = position_map[key]
+            # Check if one is a substring of the other
+            if word in existing_word or existing_word in word:
+                # Return the shorter word to remove
+                shorter = word if len(word) < len(existing_word) else existing_word
+                print(f"⚠️  Detected overlap: '{word}' and '{existing_word}' at same position")
+                print(f"   Will retry without '{shorter}'")
+                return (True, shorter)
+        else:
+            position_map[key] = word
+    
+    return (False, None)
+
+
 # Build final JSON response, write to latest_crossword.json
 def build_and_save(theme: str):
     # 1) get words - request 30 words for more variety
@@ -229,46 +255,51 @@ def build_and_save(theme: str):
         print(f"Clue generation failed: {e}")
         clues = None
 
-    # 3) generate crossword (pycrossword documented usage)
-    dimensions, placed_words = generate_crossword(words.copy(), x=5, y=5)
-
-    print(f"Placed {len(placed_words)} words in crossword")
-
-    # 4) FIX: Remove duplicate words that start at the same position
-    # This happens when a shorter word is a substring of a longer word at the same position
-    cleaned_placed_words = []
-    position_map = {}  # Map (row, col, is_across) -> word
+    # 3) generate crossword with retry logic for overlapping substrings
+    max_retries = 5
+    words_to_use = words.copy()
     
-    for word_data in placed_words:
-        word, row, col, is_across = word_data
-        key = (row, col, is_across)
+    for attempt in range(max_retries):
+        print(f"\nAttempt {attempt + 1}: Generating crossword with {len(words_to_use)} words...")
+        dimensions, placed_words = generate_crossword(words_to_use.copy(), x=5, y=5)
         
-        if key in position_map:
-            # We already have a word at this position
-            existing_word = position_map[key]
-            # Keep the longer word
-            if len(word) > len(existing_word):
-                # Remove the old word from cleaned list
-                cleaned_placed_words = [w for w in cleaned_placed_words if not (w[0] == existing_word and w[1] == row and w[2] == col and w[3] == is_across)]
-                cleaned_placed_words.append(word_data)
-                position_map[key] = word
-            # else: keep the existing longer word, skip this one
+        # Check for overlapping substrings at same position
+        has_overlap, word_to_remove = detect_overlapping_substrings(placed_words)
+        
+        if not has_overlap:
+            print(f"✅ Success! Placed {len(placed_words)} words with no overlaps")
+            break
         else:
-            # New position, add it
-            cleaned_placed_words.append(word_data)
-            position_map[key] = word
-    
-    placed_words = cleaned_placed_words
-    print(f"After deduplication: {len(placed_words)} unique words")
+            # Remove the problematic word and retry
+            words_to_use = [w for w in words_to_use if w != word_to_remove]
+            if attempt == max_retries - 1:
+                print(f"⚠️  Max retries reached. Using current placement.")
+                # Remove the duplicate from placed_words
+                position_map = {}
+                cleaned_placed_words = []
+                for word_data in placed_words:
+                    word, row, col, is_across = word_data
+                    key = (row, col, is_across)
+                    if key in position_map:
+                        existing = position_map[key]
+                        # Keep longer word
+                        if len(word) > len(existing):
+                            cleaned_placed_words = [w for w in cleaned_placed_words if w[0] != existing]
+                            cleaned_placed_words.append(word_data)
+                            position_map[key] = word
+                    else:
+                        cleaned_placed_words.append(word_data)
+                        position_map[key] = word
+                placed_words = cleaned_placed_words
 
-    # 5) render grid CLI-style
+    # 4) render grid CLI-style
     grid = render_crossword(placed_words, dimensions)
 
     # Pad grid to ensure it's always 5x5
     grid = pad_grid_to_5x5(grid)
     dimensions = (5, 5)  # Update dimensions to reflect padded size
 
-    # 6) organize clues by across/down
+    # 5) organize clues by across/down
     if clues:
         across_clues = [
             clues[p[0]][0]
@@ -284,7 +315,7 @@ def build_and_save(theme: str):
         across_clues = []
         down_clues = []
 
-    # 7) create JSON structure
+    # 6) create JSON structure
     response_obj = {
         "theme": theme,
         "words_sent": words,
@@ -296,12 +327,12 @@ def build_and_save(theme: str):
         "clues_down": down_clues,
     }
 
-    # 8) write to local file (for local development)
+    # 7) write to local file (for local development)
     out_path = Path(__file__).parent / "latest_crossword.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(response_obj, f, indent=2)
 
-    # 9) ALSO save to Supabase Storage (for production persistence)
+    # 8) ALSO save to Supabase Storage (for production persistence)
     save_to_supabase_storage(response_obj, "latest_crossword.json")
 
     return response_obj
