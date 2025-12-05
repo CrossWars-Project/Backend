@@ -16,7 +16,7 @@ import os
 import json
 import re
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Tuple, Optional
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -213,6 +213,34 @@ def save_to_supabase_storage(data: dict, filename: str):
         return False
 
 
+def detect_overlapping_substrings(placed_words: list) -> Tuple[bool, Optional[str]]:
+    """
+    Detect if any word is a substring of another word at the same position with same orientation.
+    Returns (has_overlap, word_to_remove) where word_to_remove is the shorter word.
+    """
+    position_map: Dict[Tuple[int, int, bool], str] = {}
+
+    for word_data in placed_words:
+        word, row, col, is_across = word_data
+        key = (row, col, is_across)
+
+        if key in position_map:
+            existing_word = position_map[key]
+            # Check if one is a substring of the other
+            if word in existing_word or existing_word in word:
+                # Return the shorter word to remove
+                shorter = word if len(word) < len(existing_word) else existing_word
+                print(
+                    f"⚠️  Detected overlap: '{word}' and '{existing_word}' at same position"
+                )
+                print(f"   Will retry without '{shorter}'")
+                return (True, shorter)
+        else:
+            position_map[key] = word
+
+    return (False, None)
+
+
 # Build final JSON response, write to latest_crossword.json
 def build_and_save(theme: str):
     # 1) get words - request 30 words for more variety
@@ -229,10 +257,46 @@ def build_and_save(theme: str):
         print(f"Clue generation failed: {e}")
         clues = None
 
-    # 3) generate crossword (pycrossword documented usage)
-    dimensions, placed_words = generate_crossword(words.copy(), x=5, y=5)
+    # 3) generate crossword with retry logic for overlapping substrings
+    max_retries = 5
+    words_to_use = words.copy()
 
-    print(f"Placed {len(placed_words)} words in crossword")
+    for attempt in range(max_retries):
+        print(
+            f"\nAttempt {attempt + 1}: Generating crossword with {len(words_to_use)} words..."
+        )
+        dimensions, placed_words = generate_crossword(words_to_use.copy(), x=5, y=5)
+
+        # Check for overlapping substrings at same position
+        has_overlap, word_to_remove = detect_overlapping_substrings(placed_words)
+
+        if not has_overlap:
+            print(f"✅ Success! Placed {len(placed_words)} words with no overlaps")
+            break
+        else:
+            # Remove the problematic word and retry
+            words_to_use = [w for w in words_to_use if w != word_to_remove]
+            if attempt == max_retries - 1:
+                print(f"⚠️  Max retries reached. Using current placement.")
+                # Remove the duplicate from placed_words
+                position_map: Dict[Tuple[int, int, bool], str] = {}
+                cleaned_placed_words: List[list] = []
+                for word_data in placed_words:
+                    word, row, col, is_across = word_data
+                    key = (row, col, is_across)
+                    if key in position_map:
+                        existing = position_map[key]
+                        # Keep longer word
+                        if len(word) > len(existing):
+                            cleaned_placed_words = [
+                                w for w in cleaned_placed_words if w[0] != existing
+                            ]
+                            cleaned_placed_words.append(word_data)
+                            position_map[key] = word
+                    else:
+                        cleaned_placed_words.append(word_data)
+                        position_map[key] = word
+                placed_words = cleaned_placed_words
 
     # 4) render grid CLI-style
     grid = render_crossword(placed_words, dimensions)
