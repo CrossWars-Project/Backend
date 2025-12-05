@@ -231,9 +231,11 @@ def test_unauthenticated_requests_are_rejected_with_401():
     res2 = client.put("/stats/update_user_stats", json={"num_wins_battle": 1})
     assert res2.status_code == 401
 
+
 # -------------------------------------------------
 # STREAK UPDATE TESTS
 # -------------------------------------------------
+
 
 def test_streak_increment_and_no_increment_same_day_solo():
     from app.main import app
