@@ -116,6 +116,70 @@ def get_user_stats(user_id: str):
         print("Error fetching user stats:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.put("/update_battle_stats")
+def update_battle_stats(user: dict, current_user: dict = Depends(get_current_user), winner_id: str = None):
+    """
+    Updates the battle stats for an (authenticated) user.
+    First checks if there is no user_id (ex: one of the battle players was a guest user)
+    If this is the case, does not update anything and returns success.
+    Then, if there is a user_id, check whether or not the id matches the winner_id and updates 
+    win stats and fastest time stat accordingly.
+    """
+    supabase = get_supabase()
+    user_id = current_user.get("user_id")
+
+    if not user_id:
+        # Guest user - do not update stats
+        return {"success": True, "message": "Guest user - no stats updated"}
+
+    try:
+        # Get existing stats
+        response = supabase.table("Stats").select("*").eq("user_id", user_id).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        current = response.data[0]
+        updated_fields = {}
+
+        # Update number of battle games played
+        num_battle_games = current.get("num_battle_games", 0) + 1
+        updated_fields["num_battle_games"] = num_battle_games
+
+        # Update number of wins if applicable
+        if user_id == winner_id:
+            num_wins_battle = current.get("num_wins_battle", 0) + 1
+            updated_fields["num_wins_battle"] = num_wins_battle
+            # if they are the winner, the duration of the battle was their battle time, so check for fastest time
+            new_time = user.get("fastest_battle_time")
+            old_time = current.get("fastest_battle_time")
+            if (old_time == 0 or old_time is None) and (new_time > 0):
+                updated_fields["fastest_battle_time"] = new_time
+            elif new_time > 0 and old_time and new_time < old_time:
+                updated_fields["fastest_battle_time"] = new_time
+            # update their win streak, should increment by 1
+            win_streak = current.get("streak_count_battle", 0) + 1
+            updated_fields["streak_count_battle"] = win_streak
+        else:
+            # if they lost, reset their win streak
+            updated_fields["streak_count_battle"] = 0
+            
+        if not updated_fields:
+            return {"success": False, "message": "No better stats to update"}
+
+        update_res = (
+            supabase.table("Stats")
+            .update(updated_fields)
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        return {"success": True, "updated_data": update_res.data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("Error updating battle stats:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/update_user_stats")
 def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)):
