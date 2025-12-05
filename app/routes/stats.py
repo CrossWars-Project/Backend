@@ -79,7 +79,7 @@ def get_user_stats(user_id: str):
 
         today = datetime.utcnow().date()
 
-        # --- SOLO ---
+        # --- SOLO streak check ---
         last_solo = stats.get("dt_last_seen_solo")
         if last_solo:
             last_solo_dt = datetime.fromisoformat(last_solo).date()
@@ -88,15 +88,6 @@ def get_user_stats(user_id: str):
             # reset if last play was 2 or more days ago
             if days_since_solo >= 2:
                 updated_fields["streak_count_solo"] = 0
-
-        # --- BATTLE ---
-        last_battle = stats.get("dt_last_seen_battle")
-        if last_battle:
-            last_battle_dt = datetime.fromisoformat(last_battle).date()
-            days_since_battle = (today - last_battle_dt).days
-
-            if days_since_battle >= 2:
-                updated_fields["streak_count_battle"] = 0
 
         # If any resets are needed → update DB
         if updated_fields:
@@ -119,7 +110,7 @@ def get_user_stats(user_id: str):
 
 @router.put("/update_battle_stats")
 def update_battle_stats(
-    user: dict, current_user: dict = Depends(get_current_user), winner_id: str = None
+    payload: dict, current_user: dict = Depends(get_current_user)
 ):
     """
     Updates the battle stats for an (authenticated) user.
@@ -130,6 +121,7 @@ def update_battle_stats(
     """
     supabase = get_supabase()
     user_id = current_user.get("user_id")
+    winner_id = payload.get("winner_id")
 
     if not user_id:
         # Guest user - do not update stats
