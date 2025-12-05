@@ -13,27 +13,50 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Generate Daily Crosswords
+    # Since we are using the free version of Render, we need to wake up the backend service first
+    # it will auto sleep after 15 min of no activity, so ping it first to wake and then wait 30 sec.
+      - name: Wake Render Backend
+        run: |
+          echo "🔔 Warming up Render backend..."
+          curl -s https://backend-ezw4.onrender.com/health || true
+          sleep 30
+      # Generate the daily crosswords and retry up to 5 times if it fails
+      - name: Generate Daily Crosswords (with retry)
         run: |
           echo "🎯 Generating daily crosswords at $(date)"
-          
-          response=$(curl -X POST https://backend-ezw4.onrender.com/crossword/generate-daily \
-            -H "Content-Type: application/json" \
-            -w "\n%{http_code}" \
-            -s \
-            --max-time 300)
-          
-          http_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | sed '$d')
-          
-          echo "Response body: $body"
-          echo "HTTP status: $http_code"
-          
-          if [ "$http_code" -eq 200 ]; then
-            echo "✅ Daily crosswords generated successfully!"
-            exit 0
-          else
-            echo "❌ Failed to generate crosswords (HTTP $http_code)"
+
+          max_attempts=5
+          attempt=1
+          success=false
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts..."
+
+            response=$(curl -X POST https://backend-ezw4.onrender.com/crossword/generate-daily \
+              -H "Content-Type: application/json" \
+              -w "\n%{http_code}" \
+              -s \
+              --max-time 300)
+
+            http_code=$(echo "$response" | tail -n1)
+            body=$(echo "$response" | sed '$d')
+
+            echo "Response body: $body"
+            echo "HTTP status: $http_code"
+
+            if [ "$http_code" -eq 200 ]; then
+              echo "✅ Daily crosswords generated successfully!"
+              success=true
+              break
+            fi
+
+            echo "❌ Failed (HTTP $http_code). Waiting before retry..."
+            sleep 15
+            attempt=$((attempt + 1))
+          done
+
+          if [ "$success" = false ]; then
+            echo "❌ All attempts failed."
             exit 1
           fi
       
