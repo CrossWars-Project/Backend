@@ -219,23 +219,25 @@ def detect_overlapping_substrings(placed_words: list) -> tuple:
     Returns (has_overlap, word_to_remove) where word_to_remove is the shorter word.
     """
     position_map = {}  # Map (row, col, is_across) -> word
-    
+
     for word_data in placed_words:
         word, row, col, is_across = word_data
         key = (row, col, is_across)
-        
+
         if key in position_map:
             existing_word = position_map[key]
             # Check if one is a substring of the other
             if word in existing_word or existing_word in word:
                 # Return the shorter word to remove
                 shorter = word if len(word) < len(existing_word) else existing_word
-                print(f"⚠️  Detected overlap: '{word}' and '{existing_word}' at same position")
+                print(
+                    f"⚠️  Detected overlap: '{word}' and '{existing_word}' at same position"
+                )
                 print(f"   Will retry without '{shorter}'")
                 return (True, shorter)
         else:
             position_map[key] = word
-    
+
     return (False, None)
 
 
@@ -258,14 +260,16 @@ def build_and_save(theme: str):
     # 3) generate crossword with retry logic for overlapping substrings
     max_retries = 5
     words_to_use = words.copy()
-    
+
     for attempt in range(max_retries):
-        print(f"\nAttempt {attempt + 1}: Generating crossword with {len(words_to_use)} words...")
+        print(
+            f"\nAttempt {attempt + 1}: Generating crossword with {len(words_to_use)} words..."
+        )
         dimensions, placed_words = generate_crossword(words_to_use.copy(), x=5, y=5)
-        
+
         # Check for overlapping substrings at same position
         has_overlap, word_to_remove = detect_overlapping_substrings(placed_words)
-        
+
         if not has_overlap:
             print(f"✅ Success! Placed {len(placed_words)} words with no overlaps")
             break
@@ -284,7 +288,9 @@ def build_and_save(theme: str):
                         existing = position_map[key]
                         # Keep longer word
                         if len(word) > len(existing):
-                            cleaned_placed_words = [w for w in cleaned_placed_words if w[0] != existing]
+                            cleaned_placed_words = [
+                                w for w in cleaned_placed_words if w[0] != existing
+                            ]
                             cleaned_placed_words.append(word_data)
                             position_map[key] = word
                     else:
