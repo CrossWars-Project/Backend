@@ -15,7 +15,7 @@ async def create_invite(
     current_user: dict = Depends(get_current_user),
 ) -> Dict[str, Union[bool, str]]:
     """Create battle invite for logged-in user. Generates token, creates WAITING battle, links invite.
-    
+
     Returns: {"success": bool, "invite_token": str, "battle_id": str}
     Raises: 500 if creation fails
     """
@@ -86,7 +86,7 @@ async def accept_invite(
     invite_token: str, current_user: dict | None = Depends(get_current_user_optional)
 ) -> Dict[str, Union[bool, str]]:
     """Accept invite and join battle. Works for logged-in users and guests. Changes WAITING → READY.
-    
+
     Returns: {"success": bool, "battle_id": str, "is_guest": bool}
     Raises: 400 if expired/self-invite, 404 if not found, 409 if already accepted
     """
@@ -182,6 +182,3 @@ async def accept_invite(
     except Exception as e:
         print("Error accepting invite:", e)
         raise HTTPException(status_code=500, detail="Failed to accept Invite")
-
-
-

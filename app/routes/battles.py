@@ -15,7 +15,7 @@ async def get_battle(
     battle_id: str, current_user: dict | None = Depends(get_current_user_optional)
 ):
     """Fetch battle details by ID.
-    
+
     Returns: {"success": bool, "battle": dict}
     Raises: 404 if not found
     """
@@ -54,7 +54,7 @@ async def mark_ready(
     battle_id: str, current_user: dict | None = Depends(get_current_user_optional)
 ):
     """Mark player as ready to start. Updates player1_ready or player2_ready flag.
-    
+
     Returns: {"success": bool, "message": str}
     Raises: 400 if not in READY/WAITING state, 403 if not part of battle
     """
@@ -121,7 +121,7 @@ async def start(
     battle_id: str, current_user: dict | None = Depends(get_current_user_optional)
 ):
     """Start battle after both players ready. Changes READY → IN_PROGRESS. Idempotent.
-    
+
     Returns: {"success": bool, "started_at": str, "already_started": bool}
     Raises: 400 if players not ready or wrong state, 403 if not part of battle
     """
@@ -213,7 +213,7 @@ async def end(
     battle_id: str, current_user: dict | None = Depends(get_current_user_optional)
 ):
     """Complete battle when player finishes. First to finish wins. Changes IN_PROGRESS → COMPLETED. Idempotent.
-    
+
     Returns: {"success": bool, "winner_id": str, "winner": str, "completed_at": str, "already_completed": bool}
     Raises: 400 if not IN_PROGRESS, 403 if not part of battle
     """
