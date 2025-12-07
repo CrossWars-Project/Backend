@@ -109,9 +109,7 @@ def get_user_stats(user_id: str):
 
 
 @router.put("/update_battle_stats")
-def update_battle_stats(
-    payload: dict, current_user: dict = Depends(get_current_user)
-):
+def update_battle_stats(payload: dict, current_user: dict = Depends(get_current_user)):
     """
     Updates the battle stats for an (authenticated) user.
     First checks if there is no user_id (ex: one of the battle players was a guest user)
@@ -231,7 +229,10 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
 
         # ---------------- Handle other fields ----------------
         # Keys to skip because they are handled above
-        skip_keys = {"user_id", "dt_last_seen_solo",}
+        skip_keys = {
+            "user_id",
+            "dt_last_seen_solo",
+        }
 
         for key, new_value in user.items():
             if key in skip_keys:
