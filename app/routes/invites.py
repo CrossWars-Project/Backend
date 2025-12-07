@@ -14,13 +14,10 @@ router = APIRouter()
 async def create_invite(
     current_user: dict = Depends(get_current_user),
 ) -> Dict[str, Union[bool, str]]:
-    """Create a new battle invite for the logged-in-user to share with their friend."""
-    """
-    Flow:
-    1. Generate unique token
-    2. Create a battle with status = waiting
-    3. Link battle to invite token
-    4. Return invite token to frontend
+    """Create battle invite for logged-in user. Generates token, creates WAITING battle, links invite.
+    
+    Returns: {"success": bool, "invite_token": str, "battle_id": str}
+    Raises: 500 if creation fails
     """
 
     try:
@@ -88,8 +85,10 @@ async def create_invite(
 async def accept_invite(
     invite_token: str, current_user: dict | None = Depends(get_current_user_optional)
 ) -> Dict[str, Union[bool, str]]:
-    """
-    Accepts an invite and joins the battle. Works for logged in users and guests.
+    """Accept invite and join battle. Works for logged-in users and guests. Changes WAITING → READY.
+    
+    Returns: {"success": bool, "battle_id": str, "is_guest": bool}
+    Raises: 400 if expired/self-invite, 404 if not found, 409 if already accepted
     """
     try:
         # validate invite
@@ -183,73 +182,6 @@ async def accept_invite(
     except Exception as e:
         print("Error accepting invite:", e)
         raise HTTPException(status_code=500, detail="Failed to accept Invite")
-    """
-    Flow:
-    1. Fetch invite and validate (active, not expired)
-    2. Try to accept (concurrency protection)
-    3. Update battle with player 2
-    4. Return success and battle info so frontend can redirect to game room
-    """
 
 
-"""
-**Accepting an invite:**
-```
-User clicks link → yourapp.com/battle/{token}
-                 ↓
-Frontend loads, extracts token from URL
-        → GET /api/invites/{token}
-        → sends auth token (if logged in)
-        ↓
-Backend checks if invite is valid (active, not expired)
-       if user is logged in:
-         updates invitee_id
-       updates status to 'accepted'
-       returns: {status: "valid", game_session_data}
-       ↓
-Frontend redirects both users to game room
-INVITES ROUTE - Handles battle invitation creation and acceptance
 
-TODO PHASES:
------------
-
-PHASE 1: INVITES (CURRENT FOCUS)
-   [ ] Create invites table in Supabase
-   [ ] Create battles table in Supabase
-   [ ] Implement POST /create endpoint (logged-in users only)
-   [ ] Implement POST /accept/{invite_token} endpoint (guests allowed)
-   [ ] Test concurrency protection (two users accepting same invite)
-   [ ] Build frontend BattleMode component (create invite, show link)
-   [ ] Build frontend JoinBattle page (accept invite, redirect to game)
-  [ ] End-to-end test: Create → Share → Accept → Both in game room
-
-PHASE 2: BATTLES (NEXT)
-  [ ] GET /battles/{battle_id} - Fetch battle details for game room
-  [ ] POST /battles/{battle_id}/start - Both players clicked "ready"
-  [ ] POST /battles/{battle_id}/complete - Submit completion time & determine winner
-  [ ] Add Supabase Realtime subscriptions in frontend:
-      - Listen for opponent joining (status: WAITING → READY)
-      - Listen for opponent ready click
-      - Listen for opponent completion time
-  [ ] Build game room UI with waiting states
-  [ ] Implement crossword puzzle display
-  [ ] Add timer that starts when both click "ready"
-
-PHASE 3: STATS & POLISH
-  [ ] Create stats table (user_id, best_battle_time, num_wins, num_losses)
-  [ ] Update stats after battle completes (logged-in users only)
-  [ ] GET /stats/{user_id} - Fetch user stats
-  [ ] Build leaderboard page
-  [ ] Build user profile page showing stats
-  [ ] Enforce one-game-per-day rule (check puzzle_date)
-  [ ] Add battle history page
-  [ ] Handle edge cases (disconnections, timeouts, etc.)
-
-CURRENT FILE STATUS:
-  - POST /create: Creates battle + invite, returns token ✓
-  - POST /accept/{token}: Accepts invite, updates battle with player2 ✓
-  - Concurrency protection via database WHERE clause ✓
-  - Guest support via optional auth ✓
-"""
-
-# ... rest of your code
