@@ -137,6 +137,8 @@ def update_battle_stats(payload: dict, current_user: dict = Depends(get_current_
         # Update number of battle games played
         num_battle_games = current.get("num_battle_games", 0) + 1
         updated_fields["num_battle_games"] = num_battle_games
+        # Update the date last seen in battle
+        updated_fields["dt_last_seen_battle"] = payload.get("dt_last_seen_battle")
 
         # Update number of wins if applicable
         if user_id == winner_id:
