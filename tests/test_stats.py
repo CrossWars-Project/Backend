@@ -282,3 +282,166 @@ def test_streak_resets_after_two_days_solo():
     assert get_res.status_code == 200
     row = get_res.json()["data"][0]
     assert row["streak_count_solo"] == 0
+
+    # -------------------------------------------------
+# UPDATE BATTLE STATS TESTS
+# -------------------------------------------------
+
+def test_update_battle_stats_guest_user_no_op():
+    """
+    If the user is a guest (get_current_user returns no user_id),
+    the route should return success=True but not update anything.
+    """
+    from app.main import app
+    from app.auth import get_current_user
+
+    # Override auth to simulate GUEST user (no user_id)
+    app.dependency_overrides[get_current_user] = lambda: {"user_id": None}
+
+    client = TestClient(app)
+
+    payload = {
+        "winner_id": "some-id",
+        "fastest_battle_time": 50,
+        "dt_last_seen_battle": datetime.utcnow().isoformat(),
+    }
+
+    res = client.put("/stats/update_battle_stats", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert "no stats updated" in data["message"].lower()
+
+
+def test_update_battle_stats_authenticated_winner_updates_correctly():
+    """
+    Authenticated user wins → 
+    - battle games +1
+    - streak increments
+    - fastest_battle_time updates if better
+    - dt_last_seen_battle updates
+    """
+    from app.main import app
+    from app.auth import get_current_user
+
+    user_id = str(uuid.uuid4())
+    app.dependency_overrides[get_current_user] = lambda: _make_auth_user_for_mock(
+        user_id, "BattleWinner"
+    )
+
+    client = TestClient(app)
+
+    # Create stats row
+    client.post("/stats/create_user_stats", json={"id": user_id})
+
+    # First win → fastest time should be set
+    payload = {
+        "winner_id": user_id,
+        "fastest_battle_time": 30,
+        "dt_last_seen_battle": datetime.utcnow().isoformat(),
+    }
+
+    res = client.put("/stats/update_battle_stats", json=payload)
+    assert res.status_code == 200
+    data = res.json()["updated_data"][0]
+
+    assert data["num_battle_games"] == 1
+    assert data["num_wins_battle"] == 1
+    assert data["streak_count_battle"] == 1
+    assert data["fastest_battle_time"] == 30
+
+
+def test_update_battle_stats_authenticated_winner_does_not_update_slower_time():
+    """
+    If the user wins but provides a slower fastest_battle_time
+    than the existing one, the best time should NOT change.
+    """
+    from app.main import app
+    from app.auth import get_current_user
+
+    user_id = str(uuid.uuid4())
+    app.dependency_overrides[get_current_user] = lambda: _make_auth_user_for_mock(
+        user_id, "BattleWinnerSlow"
+    )
+
+    client = TestClient(app)
+
+    # Create stats
+    client.post("/stats/create_user_stats", json={"id": user_id})
+
+    # First win with good time
+    client.put(
+        "/stats/update_battle_stats",
+        json={
+            "winner_id": user_id,
+            "fastest_battle_time": 20,
+            "dt_last_seen_battle": datetime.utcnow().isoformat(),
+        },
+    )
+
+    # Second win but slower time → should NOT update
+    res = client.put(
+        "/stats/update_battle_stats",
+        json={
+            "winner_id": user_id,
+            "fastest_battle_time": 40,  # slower
+            "dt_last_seen_battle": datetime.utcnow().isoformat(),
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()["updated_data"][0]
+    assert data["fastest_battle_time"] == 20  # unchanged
+    assert data["streak_count_battle"] == 2  # streak increases
+    assert data["num_battle_games"] == 2
+    assert data["num_wins_battle"] == 2
+
+
+def test_update_battle_stats_authenticated_loser_resets_streak():
+    """
+    Authenticated user who loses:
+    - streak resets to 0
+    - fastest time does NOT update
+    - battle games increments
+    - dt_last_seen_battle updates
+    """
+    from app.main import app
+    from app.auth import get_current_user
+
+    user_id = str(uuid.uuid4())
+    app.dependency_overrides[get_current_user] = lambda: _make_auth_user_for_mock(
+        user_id, "BattleLoser"
+    )
+
+    client = TestClient(app)
+
+    # Create stats
+    client.post("/stats/create_user_stats", json={"id": user_id})
+
+    # Give them an initial fastest time & streak by winning once
+    client.put(
+        "/stats/update_battle_stats",
+        json={
+            "winner_id": user_id,
+            "fastest_battle_time": 10,
+            "dt_last_seen_battle": datetime.utcnow().isoformat(),
+        },
+    )
+
+    # Now they lose
+    res = client.put(
+        "/stats/update_battle_stats",
+        json={
+            "winner_id": "different_user",
+            "fastest_battle_time": 5,  # should NOT update
+            "dt_last_seen_battle": datetime.utcnow().isoformat(),
+        },
+    )
+
+    assert res.status_code == 200
+    data = res.json()["updated_data"][0]
+
+    assert data["num_battle_games"] == 2  # incremented
+    assert data["streak_count_battle"] == 0  # reset
+    assert data["fastest_battle_time"] == 10  # unchanged
+
