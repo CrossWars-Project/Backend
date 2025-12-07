@@ -284,8 +284,11 @@ def test_streak_resets_after_two_days_solo():
     assert row["streak_count_solo"] == 0
 
     # -------------------------------------------------
+
+
 # UPDATE BATTLE STATS TESTS
 # -------------------------------------------------
+
 
 def test_update_battle_stats_guest_user_no_op():
     """
@@ -315,7 +318,7 @@ def test_update_battle_stats_guest_user_no_op():
 
 def test_update_battle_stats_authenticated_winner_updates_correctly():
     """
-    Authenticated user wins → 
+    Authenticated user wins →
     - battle games +1
     - streak increments
     - fastest_battle_time updates if better
@@ -444,4 +447,3 @@ def test_update_battle_stats_authenticated_loser_resets_streak():
     assert data["num_battle_games"] == 2  # incremented
     assert data["streak_count_battle"] == 0  # reset
     assert data["fastest_battle_time"] == 10  # unchanged
-
