@@ -79,7 +79,7 @@ def get_user_stats(user_id: str):
 
         today = datetime.utcnow().date()
 
-        # --- SOLO ---
+        # --- SOLO streak check ---
         last_solo = stats.get("dt_last_seen_solo")
         if last_solo:
             last_solo_dt = datetime.fromisoformat(last_solo).date()
@@ -88,15 +88,6 @@ def get_user_stats(user_id: str):
             # reset if last play was 2 or more days ago
             if days_since_solo >= 2:
                 updated_fields["streak_count_solo"] = 0
-
-        # --- BATTLE ---
-        last_battle = stats.get("dt_last_seen_battle")
-        if last_battle:
-            last_battle_dt = datetime.fromisoformat(last_battle).date()
-            days_since_battle = (today - last_battle_dt).days
-
-            if days_since_battle >= 2:
-                updated_fields["streak_count_battle"] = 0
 
         # If any resets are needed → update DB
         if updated_fields:
@@ -114,6 +105,82 @@ def get_user_stats(user_id: str):
 
     except Exception as e:
         print("Error fetching user stats:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/update_battle_stats")
+def update_battle_stats(payload: dict, current_user: dict = Depends(get_current_user)):
+    """
+    Updates the battle stats for an (authenticated) user.
+    First checks if there is no user_id (ex: one of the battle players was a guest user)
+    If this is the case, does not update anything and returns success.
+    Then, if there is a user_id, check whether or not the id matches the winner_id and updates
+    win stats and fastest time stat accordingly.
+    """
+    supabase = get_supabase()
+    user_id = current_user.get("user_id")
+    winner_id = payload.get("winner_id")
+
+    if not user_id:
+        # Guest user - do not update stats
+        return {"success": True, "message": "Guest user - no stats updated"}
+
+    try:
+        # Get existing stats
+        response = supabase.table("Stats").select("*").eq("user_id", user_id).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        current = response.data[0]
+        updated_fields = {}
+
+        # Update number of battle games played
+        num_battle_games = current.get("num_battle_games", 0) + 1
+        updated_fields["num_battle_games"] = num_battle_games
+        # Update the date last seen in battle
+        updated_fields["dt_last_seen_battle"] = payload.get("dt_last_seen_battle")
+
+        # Update number of wins if applicable
+        if user_id == winner_id:
+            num_wins_battle = current.get("num_wins_battle", 0) + 1
+            updated_fields["num_wins_battle"] = num_wins_battle
+            # if they are the winner, the duration of the battle was their battle time, so check for fastest time
+            new_time = payload.get("fastest_battle_time")
+            old_time = current.get("fastest_battle_time")
+            if (old_time == 0 or old_time is None) and (
+                new_time is not None and new_time > 0
+            ):
+                updated_fields["fastest_battle_time"] = new_time
+            elif (
+                new_time is not None
+                and new_time > 0
+                and old_time
+                and new_time < old_time
+            ):
+                updated_fields["fastest_battle_time"] = new_time
+            # update their win streak, should increment by 1
+            win_streak = current.get("streak_count_battle", 0) + 1
+            updated_fields["streak_count_battle"] = win_streak
+        else:
+            # if they lost, reset their win streak
+            updated_fields["streak_count_battle"] = 0
+
+        if not updated_fields:
+            return {"success": False, "message": "No better stats to update"}
+
+        update_res = (
+            supabase.table("Stats")
+            .update(updated_fields)
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        return {"success": True, "updated_data": update_res.data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("Error updating battle stats:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -149,10 +216,6 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
         if new_streak_solo is not None:
             updated_fields["streak_count_solo"] = new_streak_solo
 
-        new_streak_battle = user.get("streak_count_battle")
-        if new_streak_battle is not None:
-            updated_fields["streak_count_battle"] = new_streak_battle
-
         # frontend passes the date of last play on completion of a game. We perform the logic to calculate the
         # streak from those dates here.
         new_dt_solo = user.get("dt_last_seen_solo")
@@ -173,28 +236,12 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
                 updated_fields["streak_count_solo"] = 1
             updated_fields["dt_last_seen_solo"] = new_dt_solo
 
-        # ---------------- Handle dt_last_seen and streak logic (battle) ----------------
-        new_dt_battle = user.get("dt_last_seen_battle")
-        if new_dt_battle:
-            new_dt = datetime.fromisoformat(new_dt_battle)
-            old_dt_str = current.get("dt_last_seen_battle")
-            if old_dt_str:
-                old_dt = datetime.fromisoformat(old_dt_str)
-                # Compare calendar dates only
-                if (new_dt.date() - old_dt.date()) == timedelta(days=1):
-                    updated_fields["streak_count_battle"] = (
-                        current.get("streak_count_battle", 0) + 1
-                    )
-                elif (new_dt.date() - old_dt.date()) > timedelta(days=1):
-                    updated_fields["streak_count_battle"] = 1
-                # same-day play → do not increment streak
-            else:
-                updated_fields["streak_count_battle"] = 1
-            updated_fields["dt_last_seen_battle"] = new_dt_battle
-
         # ---------------- Handle other fields ----------------
         # Keys to skip because they are handled above
-        skip_keys = {"user_id", "dt_last_seen_solo", "dt_last_seen_battle"}
+        skip_keys = {
+            "user_id",
+            "dt_last_seen_solo",
+        }
 
         for key, new_value in user.items():
             if key in skip_keys:
@@ -207,7 +254,7 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
             old_value = current.get(key)
 
             # lower = better (times)
-            if key in ("fastest_solo_time", "fastest_battle_time"):
+            if key in ("fastest_solo_time"):
                 # treat 0 or missing as "no recorded time" -> accept any positive new_value
                 if (old_value == 0 or old_value is None) and (new_value > 0):
                     updated_fields[key] = new_value
@@ -219,8 +266,6 @@ def update_user_stats(user: dict, current_user: dict = Depends(get_current_user)
             elif key in (
                 "num_complete_solo",
                 "num_solo_games",
-                "num_wins_battle",
-                "num_battle_games",
             ):
                 increment = new_value  # frontend now sends how much to increment by
                 updated_fields[key] = (old_value or 0) + increment
