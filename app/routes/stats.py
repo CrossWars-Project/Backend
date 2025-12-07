@@ -145,7 +145,7 @@ def update_battle_stats(
             num_wins_battle = current.get("num_wins_battle", 0) + 1
             updated_fields["num_wins_battle"] = num_wins_battle
             # if they are the winner, the duration of the battle was their battle time, so check for fastest time
-            new_time = user.get("fastest_battle_time")
+            new_time = payload.get("fastest_battle_time")
             old_time = current.get("fastest_battle_time")
             if (old_time == 0 or old_time is None) and (new_time > 0):
                 updated_fields["fastest_battle_time"] = new_time
