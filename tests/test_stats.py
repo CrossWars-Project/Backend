@@ -282,6 +282,3 @@ def test_streak_resets_after_two_days_solo():
     assert get_res.status_code == 200
     row = get_res.json()["data"][0]
     assert row["streak_count_solo"] == 0
-
-
-
