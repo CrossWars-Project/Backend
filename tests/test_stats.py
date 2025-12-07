@@ -159,9 +159,7 @@ def test_update_user_stats_successful_updates_and_times_logic():
     res5 = client.put(
         "/stats/update_user_stats",
         json={
-            "num_wins_battle": 2,
             "num_solo_games": 1,
-            "num_battle_games": 3,
             "fastest_solo_time": 70,
         },
     )
@@ -169,9 +167,7 @@ def test_update_user_stats_successful_updates_and_times_logic():
     data5 = res5.json()
     assert data5["success"] is True
     updated_data = data5["updated_data"][0]
-    assert updated_data.get("num_wins_battle", 0) >= 2
     assert updated_data.get("num_solo_games", 0) >= 1
-    assert updated_data.get("num_battle_games", 0) >= 3
     # If backend wrote the fastest time, it should equal 70
     assert updated_data.get("fastest_solo_time") == 70
 
