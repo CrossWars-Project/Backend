@@ -1,0 +1,59 @@
+name: Cleanup Old Battles
+
+on:
+  schedule:
+     # Runs at midnight UTC every day (8 AM UTC = midnight PST)
+    - cron: '0 8 * * *'
+  
+  # Allows manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      
+      - name: Install dependencies
+        run: |
+          cd Backend
+          pip install supabase python-dotenv
+      
+      - name: Clean up old battles
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          cd Backend
+          python -c "
+          import os
+          from supabase import create_client
+          from datetime import datetime, timedelta
+          
+          # Connect to Supabase
+          url = os.getenv('SUPABASE_URL')
+          key = os.getenv('SUPABASE_KEY')
+          supabase = create_client(url, key)
+          
+          # Calculate cutoff time (48 hours ago)
+          cutoff = (datetime.now() - timedelta(hours=48)).isoformat()
+          
+          print(f'Deleting battles created before: {cutoff}')
+          
+          # Delete old battles (created more than 48 hours ago)
+          result = supabase.table('battles').delete().lt('created_at', cutoff).execute()
+          
+          deleted_count = len(result.data) if result.data else 0
+          print(f'✅ Deleted {deleted_count} old battle(s)')
+          "
+      
+      - name: Summary
+        if: success()
+        run: echo "✅ Battle cleanup completed at $(date)"
