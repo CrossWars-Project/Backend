@@ -147,9 +147,16 @@ def update_battle_stats(payload: dict, current_user: dict = Depends(get_current_
             # if they are the winner, the duration of the battle was their battle time, so check for fastest time
             new_time = payload.get("fastest_battle_time")
             old_time = current.get("fastest_battle_time")
-            if (old_time == 0 or old_time is None) and (new_time is not None and new_time > 0):
+            if (old_time == 0 or old_time is None) and (
+                new_time is not None and new_time > 0
+            ):
                 updated_fields["fastest_battle_time"] = new_time
-            elif new_time > 0 and old_time and new_time is not None and new_time < old_time:
+            elif (
+                new_time > 0
+                and old_time
+                and new_time is not None
+                and new_time < old_time
+            ):
                 updated_fields["fastest_battle_time"] = new_time
             # update their win streak, should increment by 1
             win_streak = current.get("streak_count_battle", 0) + 1
