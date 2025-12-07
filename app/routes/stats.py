@@ -152,9 +152,9 @@ def update_battle_stats(payload: dict, current_user: dict = Depends(get_current_
             ):
                 updated_fields["fastest_battle_time"] = new_time
             elif (
-                new_time > 0
+                new_time is not None
+                and new_time > 0
                 and old_time
-                and new_time is not None
                 and new_time < old_time
             ):
                 updated_fields["fastest_battle_time"] = new_time
