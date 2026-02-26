@@ -23,7 +23,6 @@ jobs:
       
       - name: Install dependencies
         run: |
-          cd Backend
           pip install supabase python-dotenv
       
       - name: Clean up old battles
@@ -31,7 +30,6 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          cd Backend
           python -c "
           import os
           from supabase import create_client
